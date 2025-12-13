@@ -1,0 +1,170 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Purchase Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="page-title fs-2 fw-bold">Purchase Management</h1>
+            <p class="page-subtitle text-muted">Manage vendor purchases and inventory</p>
+        </div>
+        <button class="btn btn-primary" id="addPurchaseBtn" data-bs-toggle="modal" data-bs-target="#addPurchaseModal">
+            <i class="fas fa-plus me-2"></i>Add Purchase
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h5 class="card-title mb-0">Purchases</h5>
+            <div class="grid-actions">
+                <button class="btn btn-sm btn-outline-primary" id="exportPurchasesBtn">
+                    <i class="fas fa-file-export me-1"></i>Export
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="filterPurchasesBtn">
+                    <i class="fas fa-filter me-1"></i>Filter
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="purchasesTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vendor</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>GST</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="purchasesTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center py-4">No purchases recorded yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addPurchaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record New Purchase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="purchaseForm" class="form-horizontal">
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Date</label>
+                        <div class="col-sm-9">
+                            <input class="form-control" type="date" id="purchaseDate" required>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Vendor</label>
+                        <div class="col-sm-9">
+                            <select class="form-select" id="purchaseVendor" required>
+                                <option value="">Select Vendor</option>                                      
+                                <option value="Ram">Ram</option>
+                                <option value="Veera">Veera</option>
+                                <option value="Local Purchase">Local Purchase</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Category</label>
+                        <div class="col-sm-9">
+                            <div class="d-flex gap-2">
+                                <select id="purchaseCategory" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Beeda">Beeda</option>
+                                    <option value="Coconut">Coconut</option>
+                                    <option value="Milk">Milk</option>
+                                    <option value="Vegetables">Vegetables</option>
+                                </select>
+                                <button type="button" class="btn btn-primary" id="addPurchaseCategoryBtn">+</button>
+                            </div>
+                            <div id="purchaseCategoryInputBox" class="mt-2" style="display:none;">
+                                <div class="input-group">
+                                    <input type="text" id="newPurchaseCategory" class="form-control" placeholder="Enter new category">
+                                    <button class="btn btn-success" id="savePurchaseCategory" type="button">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Bill No</label>
+                        <div class="col-sm-9">
+                            <input class="form-control" id="purchaseBillNo" placeholder="Enter bill number" type="text" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Quantity</label>
+                        <div class="col-sm-9">
+                            <div class="d-flex gap-2">
+                                <input class="form-control" id="purchaseQuantity" placeholder="Qty" type="number" min="1" required>
+                                <select class="form-select" id="purchaseUnit" style="max-width: 100px;" required>
+                                    <option value="kg">kg</option>
+                                    <option value="liters">liters</option>
+                                    <option value="pcs">pcs</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Unit Price (₹)</label>
+                        <div class="col-sm-9">
+                            <input class="form-control" id="purchaseUnitPrice" placeholder="Price per unit" type="number" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                         <label class="col-sm-3 col-form-label fw-bold">GST?</label>
+                         <div class="col-sm-9 d-flex align-items-center">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="radio" name="gstApplicable" id="gstYes" value="yes" checked>
+                                <label class="form-check-label" for="gstYes">Yes</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gstApplicable" id="gstNo" value="no">
+                                <label class="form-check-label" for="gstNo">No</label>
+                            </div>
+                         </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Total Cost (₹)</label>
+                        <div class="col-sm-9">
+                            <input class="form-control" id="purchaseTotal" placeholder="Auto-calculated" type="number" required>
+                        </div>
+                    </div>   
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-3 col-form-label fw-bold">Status</label>
+                        <div class="col-sm-9">
+                            <select class="form-select" id="purchaseStatus" required>
+                                <option>Paid</option>
+                                <option>Pending</option>
+                                <option>Credit</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="savePurchaseBtn">Save Purchase</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
