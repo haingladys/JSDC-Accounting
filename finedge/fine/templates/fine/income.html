@@ -1,0 +1,194 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Income Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="incomehead d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Income</h2>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="date-controls d-flex gap-2">
+                <input type="date" class="form-control form-control-sm" id="dateSelector" style="width: 160px;">
+            </div>
+            
+            <button class="btn btn-primary" id="add-income-btn" data-bs-toggle="modal" data-bs-target="#addIncomeModal">
+                <i class="fas fa-plus me-1"></i> Add Income
+            </button>
+        </div>
+    </div>
+
+    <div class="income-cards-container">
+        <div class="card income-summary-card daily-income-card">
+            <div class="card-body">
+                <div class="income-card-header">
+                    <div class="income-title-section">
+                        <h6 class="card-subtitle">Daily Income</h6>
+                        <h2 class="card-title" id="daily-income">₹0</h2>
+                    </div>
+                    <div class="income-icon">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-calendar-day"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="income-trend-section">
+                    <span class="trend-indicator trend-neutral">
+                        <i class="fas fa-minus me-1"></i>0%
+                    </span>
+                    <span class="trend-text">from yesterday</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card income-summary-card weekly-income-card">
+            <div class="card-body">
+                <div class="income-card-header">
+                    <div class="income-title-section">
+                        <h6 class="card-subtitle">Weekly Income</h6>
+                        <h2 class="card-title" id="weekly-income">₹0</h2>
+                    </div>
+                    <div class="income-icon">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-calendar-week"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="income-trend-section">
+                    <span class="trend-indicator trend-neutral">
+                        <i class="fas fa-minus me-1"></i>0%
+                    </span>
+                    <span class="trend-text">from last week</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card income-summary-card monthly-income-card">
+            <div class="card-body">
+                <div class="income-card-header">
+                    <div class="income-title-section">
+                        <h6 class="card-subtitle">Monthly Income</h6>
+                        <h2 class="card-title" id="monthly-income">₹0</h2>
+                    </div>
+                    <div class="income-icon">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="income-trend-section">
+                    <span class="trend-indicator trend-neutral">
+                        <i class="fas fa-minus me-1"></i>0%
+                    </span>
+                    <span class="trend-text">from last month</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card income-summary-card total-income-card">
+            <div class="card-body">
+                <div class="income-card-header">
+                    <div class="income-title-section">
+                        <h6 class="card-subtitle">Total Income</h6>
+                        <h2 class="card-title" id="total-income">₹0</h2>
+                    </div>
+                    <div class="income-icon">
+                        <div class="icon-wrapper">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="income-trend-section">
+                    <span class="trend-indicator trend-neutral">
+                        <i class="fas fa-minus me-1"></i>0%
+                    </span>
+                    <span class="trend-text">from overall</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card income-transactions-table">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Income</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" id="filter-btn">
+                    <i class="fas fa-filter me-1"></i> Filter
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar-day me-2 heading-icon"></i> Date</th>
+                            <th><i class="fas fa-align-left me-2 heading-icon"></i> Description</th>
+                            <th><i class="fas fa-credit-card me-2 heading-icon"></i> Mode</th>
+                            <th><i class="fas fa-indian-rupee-sign me-2 heading-icon"></i> Amount</th>
+                            <th><i class="fas fa-check-circle me-2 heading-icon"></i> Status</th>
+                            <th> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="income-table-body">
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                No income records found for this date.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addIncomeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record New Income</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="incomeForm">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input class="form-control" name="date" required type="date"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" name="description" required type="text" placeholder="Enter description"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount (₹)</label>
+                        <input class="form-control" name="amount" placeholder="Enter amount" required type="number" min="0" step="0.01"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Mode</label>
+                        <select class="form-select" name="paymentMode" required>
+                            <option value="">Select Mode</option>
+                            <option>Cash</option>
+                            <option>UPI</option>
+                            <option>Credit Card</option>
+                            <option>Bank Transfer</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" required>
+                            <option>Received</option>
+                            <option>Pending</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-success" id="save-income-btn">Save Income</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
