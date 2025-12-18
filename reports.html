@@ -1,0 +1,255 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<!-- Reports Page -->
+<div id="reports-page">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Financial Reports & Analytics</h2>
+      <p class="text-muted mb-0">Generate comprehensive financial reports and insights</p>
+    </div>
+  </div>
+
+  <!-- Reports Filter Controls -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Date Range</label>
+          <div class="input-group">
+            <input type="date" class="form-control" id="report-start-date">
+            <span class="input-group-text">to</span>
+            <input type="date" class="form-control" id="report-end-date">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports Dashboard - Cards Grid -->
+  <div class="reports-dashboard mb-5">
+    <h4 class="mb-3">Available Reports</h4>
+    <div class="reports-grid">
+      <!-- Expense Report -->
+      <div class="report-card" data-report="expense">
+        <div class="report-card-header">
+          <div class="report-icon">
+            <i class="fas fa-chart-pie"></i>
+          </div>
+          <h5>Expense Report</h5>
+        </div>
+        <div class="report-card-body">
+          <p class="report-description">Breakdown of expenses by category with percentage distribution</p>
+        </div>
+        <div class="report-card-footer">
+          <button class="btn btn-sm btn-outline-primary view-report-btn">
+            <i class="fas fa-eye me-1"></i> View Report
+          </button>
+          <button class="btn btn-sm btn-outline-secondary export-report-btn">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Purchase Report -->
+      <div class="report-card" data-report="purchase">
+        <div class="report-card-header">
+          <div class="report-icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <h5>Purchase Report</h5>
+        </div>
+        <div class="report-card-body">
+          <p class="report-description">Vendor purchase details, inventory analysis, and cost tracking</p>
+        </div>
+        <div class="report-card-footer">
+          <button class="btn btn-sm btn-outline-primary view-report-btn">
+            <i class="fas fa-eye me-1"></i> View Report
+          </button>
+          <button class="btn btn-sm btn-outline-secondary export-report-btn">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Income Report -->
+      <div class="report-card" data-report="income">
+        <div class="report-card-header">
+          <div class="report-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h5>Income Report</h5>
+        </div>
+        <div class="report-card-body">
+          <p class="report-description">Income analysis by source, payment method, and time period</p>
+        </div>
+        <div class="report-card-footer">
+          <button class="btn btn-sm btn-outline-primary view-report-btn">
+            <i class="fas fa-eye me-1"></i> View Report
+          </button>
+          <button class="btn btn-sm btn-outline-secondary export-report-btn">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Payroll Report -->
+      <div class="report-card" data-report="payroll">
+        <div class="report-card-header">
+          <div class="report-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <h5>Payroll Report</h5>
+        </div>
+        <div class="report-card-body">
+          <p class="report-description">Employee payroll details, deductions, and net pay analysis</p>
+        </div>
+        <div class="report-card-footer">
+          <button class="btn btn-sm btn-outline-primary view-report-btn">
+            <i class="fas fa-eye me-1"></i> View Report
+          </button>
+          <button class="btn btn-sm btn-outline-secondary export-report-btn">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Attendance Report -->
+      <div class="report-card" data-report="attendance">
+        <div class="report-card-header">
+          <div class="report-icon">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <h5>Attendance Report</h5>
+        </div>
+        <div class="report-card-body">
+          <p class="report-description">Employee attendance tracking, working hours, and absence analysis</p>
+        </div>
+        <div class="report-card-footer">
+          <button class="btn btn-sm btn-outline-primary view-report-btn">
+            <i class="fas fa-eye me-1"></i> View Report
+          </button>
+          <button class="btn btn-sm btn-outline-secondary export-report-btn">
+            <i class="fas fa-download"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Display Container -->
+  <div class="report-display-container">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0 report-title">Select a report to view details</h4>
+        <div class="report-display-actions" style="display: none;">
+          <button class="btn btn-sm btn-outline-primary" id="print-report-btn">
+            <i class="fas fa-print me-1"></i> Print
+          </button>
+          <button class="btn btn-sm btn-outline-primary" id="export-report-pdf-btn">
+            <i class="fas fa-file-pdf me-1"></i> PDF
+          </button>
+          <button class="btn btn-sm btn-outline-primary" id="export-report-excel-btn">
+            <i class="fas fa-file-excel me-1"></i> Excel
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="report-placeholder text-center py-5">
+          <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No Report Selected</h5>
+          <p class="text-muted">Choose a report from the options above to view detailed analysis</p>
+        </div>
+        
+        <!-- Profit & Loss Report Template -->
+        <div class="report-content" id="profit-loss-report" style="display: none;">
+          <div class="report-header mb-4">
+            <div class="row">
+              <div class="col-md-6">
+                <h3>Profit & Loss Statement</h3>
+                <p class="text-muted" id="pl-date-range">Date Range: </p>
+              </div>
+              <div class="col-md-6 text-end">
+                <p class="mb-1">Generated on: <span id="pl-generated-date"></span></p>
+                <p class="mb-0">Period: <span id="pl-period"></span></p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="report-summary-cards mb-4">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="card summary-card income">
+                  <div class="card-body">
+                    <h6 class="text-muted mb-2">TOTAL INCOME</h6>
+                    <h3 id="pl-total-income">₹0</h3>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card summary-card expense">
+                  <div class="card-body">
+                    <h6 class="text-muted mb-2">TOTAL EXPENSES</h6>
+                    <h3 id="pl-total-expenses">₹0</h3>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card summary-card">
+                  <div class="card-body">
+                    <h6 class="text-muted mb-2">NET PROFIT/LOSS</h6>
+                    <h3 id="pl-net-profit">₹0</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="report-body">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Income & Expense Breakdown</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="table-responsive">
+                      <table class="table table-hover report-table">
+                        <thead>
+                          <tr>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Percentage</th>
+                            <th>Trend</th>
+                          </tr>
+                        </thead>
+                        <tbody id="pl-breakdown-table">
+                          <!-- Data will be populated dynamically -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="mb-0">Expense Distribution</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="chart-container">
+                      <canvas id="expensePieChart" height="250"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
