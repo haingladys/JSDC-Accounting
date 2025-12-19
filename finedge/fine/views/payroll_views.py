@@ -145,6 +145,7 @@ def get_payroll_data(request):
     data = []
     total_salary = Decimal('0')
     total_advances = Decimal('0')
+    total_spr = Decimal('0')
     
     for payroll in payrolls:
         data.append({
@@ -162,6 +163,7 @@ def get_payroll_data(request):
         
         total_salary += payroll.net_salary
         total_advances += payroll.advances
+        total_spr += payroll.spr_amount
     
     return JsonResponse({
         'success': True,
@@ -169,6 +171,7 @@ def get_payroll_data(request):
         'summary': {
             'total_salary': float(total_salary),
             'total_advances': float(total_advances),
+            'total_spr': float(total_spr),
             'net_payable': float(total_salary)
         }
     })

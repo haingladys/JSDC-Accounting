@@ -2,6 +2,7 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 from django.shortcuts import get_object_or_404
+from django.db.models import Q 
 from datetime import datetime, date
 from decimal import Decimal
 import calendar
@@ -10,6 +11,7 @@ from collections import defaultdict
 # Import from base and models
 from .base import logger
 from ..models import Payroll, Attendance
+
 
 
 @require_GET
@@ -199,7 +201,7 @@ def get_attendance_report(request):
             attendances = attendances.filter(employee_name__icontains=employee_name)
             logger.debug(f"Records after employee filter: {attendances.count()}")
         
-        # Prepare report data - SIMPLIFIED to match model fields
+        # Prepare report data - INCLUDE NOTES FIELD
         report_data = []
         summary = {
             'total_records': 0,
@@ -209,7 +211,7 @@ def get_attendance_report(request):
             'total_attendance_days': Decimal('0')
         }
         
-        # Simplified processing - just get what's in the model
+        # Process attendance records
         for attendance in attendances:
             date_str = attendance.date.strftime('%Y-%m-%d')
             display_date = attendance.date.strftime('%d-%b-%Y')
@@ -222,7 +224,7 @@ def get_attendance_report(request):
             elif attendance.status == 'half_day':
                 attendance_value = Decimal('0.5')
             
-            # Add to report data - ONLY fields that exist in model
+            # Add to report data - INCLUDE NOTES FIELD
             report_data.append({
                 'id': attendance.id,
                 'employee_name': attendance.employee_name,
@@ -232,7 +234,7 @@ def get_attendance_report(request):
                 'status': attendance.status,
                 'status_display': attendance.get_status_display(),
                 'attendance_value': float(attendance_value),
-                # REMOVED 'remarks' field since it doesn't exist in model
+                'notes': attendance.notes if hasattr(attendance, 'notes') else '',  # ADDED NOTES FIELD
                 'record_state': attendance.record_state
             })
             
@@ -354,7 +356,8 @@ def get_combined_report(request):
                 'date': attendance.date.strftime('%Y-%m-%d'),
                 'display_date': attendance.date.strftime('%d-%b-%Y'),
                 'status': attendance.status,
-                'status_display': attendance.get_status_display()
+                'status_display': attendance.get_status_display(),
+                'notes': attendance.notes if hasattr(attendance, 'notes') else ''  # ADDED NOTES
             })
             
             attendance_summary['total_records'] += 1
