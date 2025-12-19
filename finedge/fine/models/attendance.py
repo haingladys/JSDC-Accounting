@@ -14,6 +14,7 @@ class Attendance(SoftDeleteModel):
     employee_name = models.CharField(max_length=100)
     date = models.DateField()
     status = models.CharField(max_length=10, choices=ATTENDANCE_STATUS_CHOICES)
+    notes = models.TextField(blank=True, null=True, verbose_name="Additional Notes")  # NEW FIELD
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

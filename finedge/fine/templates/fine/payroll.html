@@ -1,164 +1,244 @@
 {% extends 'fine/base.html' %}
+{% load static %}
 
 {% block title %}Payroll Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">Payroll Management</h2>
-            <p class="text-muted mb-0">Manage employee salaries and benefits</p>
-        </div>
-        <div class="d-flex align-items-center gap-3">
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="monthDropdown" data-bs-toggle="dropdown">
-                    <i class="fas fa-calendar me-1"></i> <span id="selected-period">April 2024</span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><h6 class="dropdown-header">Select Year</h6></li>
-                    <li>
-                        <select class="form-select form-select-sm m-2 year-dropdown" id="yearSelect">
-                            </select>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><h6 class="dropdown-header">Select Month</h6></li>
-                    <li><a class="dropdown-item" href="#" data-month="1">January</a></li>
-                    <li><a class="dropdown-item" href="#" data-month="2">February</a></li>
-                    <li><a class="dropdown-item" href="#" data-month="3">March</a></li>
-                    <li><a class="dropdown-item active" href="#" data-month="4">April</a></li>
-                    </ul>
-            </div>
-            <button class="btn btn-primary" id="add-employee-btn" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
-                <i class="fas fa-plus me-1"></i> Add Employee
-            </button>
-        </div>
+<div id="payroll-page">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Payroll Management</h2>
+      <p class="text-muted mb-0">Manage employee salaries</p>
     </div>
 
+    <div class="d-flex align-items-center gap-3">
+      <!-- Period Display -->
+      <div id="payroll-month-year-display" class="dashboard-period-display">
+        <i class="fas fa-calendar-alt me-2"></i>
+        <span id="current-payroll-period">Loading...</span>
+      </div>
+      
+      <!-- Add Employee Button -->
+      <button class="btn btn-primary" id="add-employee-btn">
+        <i class="fas fa-plus me-1"></i> Add Employee
+      </button>
+    </div>
+  </div>
+  
+  <!-- Payroll Statistics -->
     <div class="row mb-4 g-4">
-        <div class="col-sm-6 col-md-3">
-            <div class="payroll-stats total-salary-card p-3 rounded text-white" style="background: linear-gradient(135deg, #4cc9f0, #4895ef);">
-                <div class="label opacity-75">Total Salary</div>
-                <h3 id="total-salary" class="mb-0">₹0</h3>
-            </div>
+      <div class="col-md-3">
+        <div class="payroll-stats total-salary-card">
+          <div class="label">Total Salary</div>
+          <h3 id="total-salary">₹0</h3>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="payroll-stats total-advances-card p-3 rounded text-white" style="background: linear-gradient(135deg, #f72585, #b5179e);">
-                <div class="label opacity-75">Total Advances</div>
-                <h3 id="total-advances" class="mb-0">₹0</h3>
-            </div>
+      </div>
+      <div class="col-md-3">
+        <div class="payroll-stats total-advances-card">
+          <div class="label">Total Advances</div>
+          <h3 id="total-advances">₹0</h3>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="payroll-stats net-payable-card p-3 rounded text-white" style="background: linear-gradient(135deg, #f8961e, #f3722c);">
-                <div class="label opacity-75">Net Payable</div>
-                <h3 id="net-payable" class="mb-0">₹0</h3>
-            </div>
+      </div>
+      <div class="col-md-3">
+        <div class="payroll-stats total-spr-card">
+          <div class="label">Total SPR</div>
+          <h3 id="total-spr">₹0</h3>
         </div>
-        <div class="col-sm-6 col-md-3">
-            <div class="d-flex flex-column gap-2 h-100 justify-content-center">
-                <button class="btn btn-success w-100" id="export-pdf-btn">
-                    <i class="fas fa-file-pdf me-1"></i> Export PDF
-                </button>
-                <button class="btn btn-warning w-100" id="export-excel-btn">
-                    <i class="fas fa-file-excel me-1"></i> Export Excel
-                </button>
-            </div>
+      </div>
+      <div class="col-md-3">
+        <div class="payroll-stats net-payable-card">
+          <div class="label">Net Payable</div>
+          <h3 id="net-payable">₹0</h3>
         </div>
+      </div>
     </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Employee Salaries</h5>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Employee</th>
-                            <th>Dept</th>
-                            <th>Type</th>
-                            <th>Basic Pay</th>
-                            <th>Days</th>
-                            <th>Gross</th>
-                            <th>Advances</th>
-                            <th>SPR</th>
-                            <th>Net Salary</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="employee-table-body">
-                        <tr>
-                            <td colspan="13" class="text-center text-muted py-4">
-                                No payroll employees found. Click "Add Employee".
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+    
+  <!-- Employee Salaries Table -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Employee Salaries</h5>
     </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Basic Pay</th>
+              <th>Advances</th>
+              <th>SPR</th>
+              <th>Net Salary</th>
+              <th>Salary Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="employee-table-body">
+            <!-- Employee rows will be dynamically added here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Employee</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="employeeForm" class="modal-form">
-                    <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-user me-2"></i>Personal Info</h6>
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label class="form-label">Employee ID</label>
-                            <input type="text" class="form-control" id="employee-id" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" id="employee-name" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Department</label>
-                            <select class="form-select" id="employee-department" required>
-                                <option value="Kitchen">Kitchen</option>
-                                <option value="Service">Service</option>
-                            </select>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="compensation-type" required>
-                                <option value="monthly">Monthly</option>
-                                <option value="daily">Daily Wage</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <h6 class="border-bottom pb-2 mb-3"><i class="fas fa-money-bill me-2"></i>Salary Info</h6>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label">Basic Salary</label>
-                            <input type="number" class="form-control" id="employee-basic-salary" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Present Days</label>
-                            <input type="number" class="form-control" id="present-days" required>
-                        </div>
-                         <div class="col-12">
-                            <label class="form-label">Salary Date</label>
-                            <input type="date" class="form-control" id="salary-date" required>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="save-employee-btn">Save Employee</button>
-            </div>
-        </div>
+<!-- Add Employee Modal -->
+<div aria-hidden="true" class="modal fade" id="addEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Employee</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <form id="employeeForm" class="two-column-form">
+          <div class="form-group full-width">
+            <label for="employee-name" class="form-label">Employee Name *</label>
+            <input type="text" class="form-control" id="employee-name" required>
+          </div>
+          <div class="form-group">
+            <label for="employee-basic-salary" class="form-label">Basic Pay *</label>
+            <input type="number" class="form-control" id="employee-basic-salary" required>
+          </div>
+          <div class="form-group">
+            <label for="spr-amount" class="form-label">SPR Amount</label>
+            <input type="number" class="form-control" id="spr-amount" value="0">
+          </div>
+          <div class="form-group">
+            <label for="advances" class="form-label">Advances</label>
+            <input type="number" class="form-control" id="advances" value="0">
+          </div>
+          <div class="form-group">
+            <label for="salary-date" class="form-label">Salary Date *</label>
+            <input type="date" class="form-control" id="salary-date" required>
+          </div>
+          <div class="compensation-info">
+            Amount to be deducted from salary
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" id="save-employee-btn" type="button">Save Employee</button>
+      </div>
     </div>
+  </div>
 </div>
+
+<!-- Edit Employee Modal -->
+<div aria-hidden="true" class="modal fade" id="editEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Employee</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <!-- ADD THIS HIDDEN INPUT -->
+        <input type="hidden" id="edit-employee-id">
+        
+        <form id="editEmployeeForm" class="two-column-form">
+          <div class="form-group">
+            <label for="edit-employee-name" class="form-label">Employee Name *</label>
+            <input type="text" class="form-control" id="edit-employee-name" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-employee-basic-salary" class="form-label">Basic Pay *</label>
+            <input type="number" class="form-control" id="edit-employee-basic-salary" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-spr-amount" class="form-label">SPR Amount</label>
+            <input type="number" class="form-control" id="edit-spr-amount" value="0">
+          </div>
+          <div class="form-group">
+            <label for="edit-advances" class="form-label">Advances</label>
+            <input type="number" class="form-control" id="edit-advances" value="0">
+          </div>
+          <div class="form-group">
+            <label for="edit-salary-date" class="form-label">Salary Date *</label>
+            <input type="date" class="form-control" id="edit-salary-date" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-payment-status" class="form-label">Payment Status</label>
+            <select class="form-select" id="edit-payment-status">
+              <option value="unpaid">Unpaid</option>
+              <option value="paid">Paid</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" id="update-employee-btn" type="button">Update Employee</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Quick debug script
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DEBUG: DOM ready, checking elements...');
+    console.log('Add button:', document.getElementById('add-employee-btn'));
+    console.log('Modal:', document.getElementById('addEmployeeModal'));
+    console.log('Bootstrap:', typeof bootstrap);
+});
+</script>
+<script>
+// Direct test - bypass all existing JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== PAYROLL DEBUG MODE ===');
+    
+    // 1. Check if button exists
+    const addBtn = document.getElementById('add-employee-btn');
+    console.log('1. Add button exists?', !!addBtn, addBtn);
+    
+    // 2. Check if modal exists
+    const modal = document.getElementById('addEmployeeModal');
+    console.log('2. Modal exists?', !!modal, modal);
+    
+    // 3. Check Bootstrap
+    console.log('3. Bootstrap available?', typeof bootstrap !== 'undefined');
+    console.log('4. Bootstrap.Modal available?', bootstrap && bootstrap.Modal ? 'YES' : 'NO');
+    
+    // 4. Add direct click handler
+    if (addBtn) {
+        console.log('5. Adding direct click handler...');
+        addBtn.addEventListener('click', function(e) {
+            console.log('6. Button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (modal) {
+                console.log('7. Showing modal...');
+                
+                // Try multiple ways to show the modal
+                if (bootstrap && bootstrap.Modal) {
+                    console.log('8. Using Bootstrap.Modal');
+                    const bsModal = new bootstrap.Modal(modal);
+                    bsModal.show();
+                    console.log('9. Modal.show() called');
+                } else {
+                    console.log('8. Bootstrap not found, showing manually');
+                    modal.style.display = 'block';
+                    modal.classList.add('show');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.querySelector('.modal-backdrop')?.remove();
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+            } else {
+                console.error('Modal not found!');
+            }
+        });
+    }
+    
+    console.log('=== DEBUG SETUP COMPLETE ===');
+});
+</script>
+<script src="{% static 'fine/js/payroll.js' %}"></script>
 {% endblock %}

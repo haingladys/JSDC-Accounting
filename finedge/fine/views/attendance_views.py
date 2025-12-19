@@ -1,11 +1,14 @@
 # views/attendance_views.py
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST, require_GET
+from django.views.decorators.http import require_POST, require_GET, require_http_methods
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 import json
 from datetime import date, timedelta
 from decimal import Decimal
+# Add this import at the top
+from django.db.models import Q
 
 # Import from base or models
 from .base import logger
@@ -20,6 +23,7 @@ def save_attendance(request):
         data = json.loads(request.body)
         employee_name = data.get('employee_name')
         attendance_date = data.get('date')
+        notes = data.get('notes', '')  # NEW: Get notes
         
         # Check if active attendance entry already exists for this employee and date
         attendance = Attendance.all_objects.filter(
@@ -31,6 +35,7 @@ def save_attendance(request):
         if attendance:
             # Update existing entry
             attendance.status = data.get('status', 'present')
+            attendance.notes = notes  # NEW: Update notes
             attendance.save()
             created = False
         else:
@@ -46,6 +51,7 @@ def save_attendance(request):
                 deleted_attendance.record_state = 'active'
                 deleted_attendance.deleted_at = None
                 deleted_attendance.status = data.get('status', 'present')
+                deleted_attendance.notes = notes  # NEW: Update notes
                 deleted_attendance.save()
                 attendance = deleted_attendance
                 created = False
@@ -55,6 +61,7 @@ def save_attendance(request):
                     employee_name=employee_name,
                     date=attendance_date,
                     status=data.get('status', 'present'),
+                    notes=notes,  # NEW: Add notes
                     record_state='active'
                 )
                 created = True
@@ -63,7 +70,8 @@ def save_attendance(request):
             'success': True,
             'message': 'Attendance saved successfully',
             'id': attendance.id,
-            'created': created
+            'created': created,
+            'notes': attendance.notes or ''  # NEW: Return notes in response
         })
     except Exception as e:
         return JsonResponse({
@@ -98,6 +106,7 @@ def get_attendance_data(request):
             'date': attendance.date.strftime('%Y-%m-%d'),
             'status': attendance.status,
             'status_display': attendance.get_status_display(),
+            'notes': attendance.notes or '',  # NEW: Include notes
             'record_state': attendance.record_state
         })
     
@@ -106,6 +115,120 @@ def get_attendance_data(request):
         'data': data
     })
 
+
+@csrf_exempt
+@require_http_methods(["POST", "PUT"])
+def edit_attendance(request):
+    """Edit an existing attendance record"""
+    try:
+        data = json.loads(request.body)
+        attendance_id = data.get('id')
+        employee_name = data.get('employee_name')
+        attendance_date_str = data.get('date')
+        status = data.get('status', 'present')
+        notes = data.get('notes', '')
+        
+        attendance = None
+        
+        # Try to find by ID first (using all_objects to include soft deleted)
+        if attendance_id:
+            try:
+                attendance = Attendance.all_objects.get(id=attendance_id)
+            except Attendance.DoesNotExist:
+                attendance = None
+        
+        # If not found by ID, try to find by employee name and date
+        if not attendance and employee_name and attendance_date_str:
+            try:
+                attendance = Attendance.all_objects.get(
+                    employee_name=employee_name,
+                    date=attendance_date_str,
+                    record_state='active'
+                )
+            except Attendance.DoesNotExist:
+                attendance = None
+        
+        # If still not found, create a new one instead of returning 404
+        if not attendance:
+            # Check if there's a soft deleted record to restore
+            deleted_attendance = Attendance.all_objects.filter(
+                employee_name=employee_name,
+                date=attendance_date_str,
+                record_state='deleted'
+            ).first()
+            
+            if deleted_attendance:
+                # Restore the soft deleted record
+                deleted_attendance.record_state = 'active'
+                deleted_attendance.deleted_at = None
+                deleted_attendance.status = status
+                deleted_attendance.notes = notes
+                deleted_attendance.save()
+                attendance = deleted_attendance
+            else:
+                # Create new entry - date should already be in YYYY-MM-DD format
+                attendance = Attendance.objects.create(
+                    employee_name=employee_name,
+                    date=attendance_date_str,
+                    status=status,
+                    notes=notes,
+                    record_state='active'
+                )
+        else:
+            # Update existing record
+            # If date changed, check if there's already an entry for the new date
+            if attendance_date_str and attendance_date_str != str(attendance.date):
+                new_date = attendance_date_str
+                
+                # Check if there's already an active record for the new date
+                existing_for_new_date = Attendance.all_objects.filter(
+                    employee_name=employee_name,
+                    date=new_date,
+                    record_state='active'
+                ).exclude(id=attendance.id).first()
+                
+                if existing_for_new_date:
+                    # Merge: Update existing record and soft delete old one
+                    existing_for_new_date.status = status
+                    existing_for_new_date.notes = notes if notes else existing_for_new_date.notes
+                    existing_for_new_date.save()
+                    attendance.soft_delete()  # Soft delete the old record
+                    attendance = existing_for_new_date
+                else:
+                    # Just update the date
+                    attendance.date = new_date
+                    attendance.status = status
+                    attendance.notes = notes
+                    attendance.save()
+            else:
+                # Just update status and notes
+                attendance.status = status
+                attendance.notes = notes
+                attendance.save()
+        
+        # Format date for response - handle both string and datetime objects
+        if isinstance(attendance.date, str):
+            formatted_date = attendance.date
+        else:
+            formatted_date = attendance.date.strftime('%Y-%m-%d')
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Attendance updated successfully',
+            'id': attendance.id,
+            'employee_name': attendance.employee_name,
+            'date': formatted_date,
+            'status': attendance.status,
+            'notes': attendance.notes or '',
+            'status_display': attendance.get_status_display()
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+    
 
 @require_GET
 def get_weekly_attendance(request):
@@ -128,7 +251,10 @@ def get_weekly_attendance(request):
     
     for att in week_attendance:
         key = f"{att.employee_name}_{att.date}"
-        attendance_data[key] = att.status
+        attendance_data[key] = {
+            'status': att.status,
+            'notes': att.notes or ''  # NEW: Include notes
+        }
     
     # Generate week days
     week_days = []
@@ -159,6 +285,8 @@ def get_weekly_attendance(request):
         }
     })
 
+
+# ... rest of your existing view functions (add_employee, delete_attendance, delete_employee_attendance) ...
 
 @csrf_exempt
 @require_POST
@@ -224,3 +352,38 @@ def delete_attendance(request):
             'success': False,
             'message': str(e)
         }, status=400)
+    
+@csrf_exempt
+@require_POST
+def delete_employee_attendance(request):
+    """Delete all attendance records for an employee"""
+    try:
+        data = json.loads(request.body)
+        employee_name = data.get('employee_name', '').strip()
+        
+        if not employee_name:
+            return JsonResponse({
+                'success': False,
+                'message': 'Employee name is required'
+            }, status=400)
+        
+        # Soft delete all attendance records for this employee
+        deleted_count = Attendance.all_objects.filter(
+            employee_name=employee_name
+        ).update(
+            record_state='deleted',
+            deleted_at=timezone.now()
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Deleted {deleted_count} attendance records for {employee_name}',
+            'deleted_count': deleted_count
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=400)
+
+    
