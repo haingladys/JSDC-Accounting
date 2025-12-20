@@ -1,18 +1,9 @@
-# views/__init__.py
-# Import all views here to make them available as module.views
-from .base import index
-
-from .login_views import (  # ADD THIS IMPORT
-    login_view,
-    dashboard,
-    expenses,
-    purchases,
-    income,
-    payroll,
-    attendance,
-    reports,
-    settings
-)
+from .auth_views import login
+from .dashboard_views import dashboard
+from .expense_views import expenses, delete_expense
+from .income_views import income, delete_income, edit_income
+from .purchase_views import purchases, edit_purchase, delete_purchase
+from . main_views import payroll, attendance, reports, settings
 
 from .payroll_views import (
     toggle_payroll_status,
@@ -38,15 +29,7 @@ from .reports_views import (
 
 
 __all__ = [
-    # Base
-    'index',
     
-        # Login and pages
-    'login_view',    # ADD THIS
-    'dashboard',     # ADD THIS
-    'expenses',      # ADD THIS
-    'purchases',     # ADD THIS
-    'income',        # ADD THIS
     'payroll',       # ADD THIS - careful: this conflicts with payroll function
     'attendance',    # ADD THIS - careful: this conflicts with attendance function
     'reports',       # ADD THIS

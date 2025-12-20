@@ -78,7 +78,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'finedge',          
         'USER': 'root',              
-        'PASSWORD': 'root', 
+        'PASSWORD': 'Server923', 
         'HOST': 'localhost',    
         'PORT': '3306',             
     }
@@ -129,3 +129,4 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
