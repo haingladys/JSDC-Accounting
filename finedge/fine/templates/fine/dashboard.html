@@ -1,122 +1,195 @@
 {% extends 'fine/base.html' %}
-{% load static %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Dashboard Page -->
-<div class="page active" id="dashboard-page">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="mb-1">Dashboard</h2>
-      <p class="text-muted mb-0">Welcome back! Here's your financial overview for <span id="dashboard-period-text"></span></p>
-    </div>
-    <div class="dashboard-period-display">
-      <i class="fas fa-calendar me-2"></i>
-      <span id="current-period-label" class="fw-bold">Loading...</span>
-    </div>
-  </div>
-  
-  <!-- Summary Cards -->
-  <div class="row mb-4 g-4">
-    <div class="col-md-3">
-      <div class="card summary-card income h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="text-muted mb-2">TOTAL INCOME</h6>
-              <h3 class="mb-0">₹81,019</h3>
-              <small class="text-success"><i class="fas fa-arrow-up"></i> 12.5% from last month</small>
-            </div>
-            <div class="bg-success bg-opacity-10 rounded p-3">
-              <i class="fas fa-rupee-sign text-success fa-lg"></i>
-            </div>
-          </div>
+<div class="container-fluid p-0">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Dashboard</h2>
+            <p class="text-muted mb-0">Welcome back! Here's your financial overview</p>
         </div>
-      </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary" id="date-range-btn">
+                <i class="fas fa-calendar me-1"></i> {% now "M Y" %}
+            </button>
+            <a href="{% url 'expenses' %}" class="btn btn-primary" id="quick-add">
+                <i class="fas fa-plus me-1"></i> New Transaction
+            </a>
+        </div>
     </div>
-    <div class="col-md-3">
-      <div class="card summary-card expense h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="text-muted mb-2">TOTAL EXPENSES</h6>
-              <h3 class="mb-0">₹32,725</h3>
-              <small class="text-danger"><i class="fas fa-arrow-up"></i> 5.2% from last month</small>
+
+    <div class="row mb-4 g-4">
+        <div class="col-sm-6 col-md-3">
+            <div class="card summary-card income h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">TOTAL INCOME</h6>
+                            <h3 class="mb-0">₹{{ total_income|floatformat:2 }}</h3>
+                            <small class="text-success"><i class="fas fa-arrow-up"></i> Live Data</small>
+                        </div>
+                        <div class="bg-success bg-opacity-10 rounded p-3">
+                            <i class="fas fa-rupee-sign text-success fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="bg-danger bg-opacity-10 rounded p-3">
-              <i class="fas fa-receipt text-danger fa-lg"></i>
-            </div>
-          </div>
         </div>
-      </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card summary-card expense h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">TOTAL EXPENSES</h6>
+                            <h3 class="mb-0">₹{{ total_expenses|floatformat:2 }}</h3>
+                            <small class="text-danger"><i class="fas fa-arrow-up"></i> Live Data</small>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 rounded p-3">
+                            <i class="fas fa-receipt text-danger fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card summary-card purchase h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">TOTAL PURCHASES</h6>
+                            <h3 class="mb-0">₹{{ total_purchases|floatformat:2 }}</h3>
+                            <small class="text-warning"><i class="fas fa-arrow-down"></i> Live Data</small>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 rounded p-3">
+                            <i class="fas fa-shopping-cart text-warning fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <div class="card summary-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="text-muted mb-2">NET BALANCE</h6>
+                            <h3 class="mb-0">₹{{ net_balance|floatformat:2 }}</h3>
+                            <small class="text-primary"><i class="fas fa-wallet text-primary fa-lg"></i> Calculated</small>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 rounded p-3">
+                            <i class="fas fa-wallet text-primary fa-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="col-md-3">
-      <div class="card summary-card purchase h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="text-muted mb-2">TOTAL PURCHASES</h6>
-              <h3 class="mb-0">₹1,186,418</h3>
-              <small class="text-warning"><i class="fas fa-arrow-down"></i> 3.8% from last month</small>
+
+    <div class="row mb-4 g-4">
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Financial Overview</h5>
+                    <div class="btn-group" id="chart-period">
+                        <button class="btn btn-sm btn-outline-secondary active" data-period="monthly">Monthly</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-period="quarterly">Quarterly</button>
+                        <button class="btn btn-sm btn-outline-secondary" data-period="yearly">Yearly</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <canvas height="250" id="financialChart"></canvas>
+                </div>
             </div>
-            <div class="bg-warning bg-opacity-10 rounded p-3">
-              <i class="fas fa-shopping-cart text-warning fa-lg"></i>
+        </div>
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Cash Flow</h5>
+                </div>
+                <div class="card-body">
+                    <canvas height="250" id="cashFlowChart"></canvas>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-    <div class="col-md-3">
-      <div class="card summary-card h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between">
-            <div>
-              <h6 class="text-muted mb-2">NET BALANCE</h6>
-              <h3 class="mb-0">₹34,635</h3>
-              <small class="text-primary"><i class="fas fa-arrow-up"></i> 7.8% from last month</small>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Recent Expenses</h5>
+                    <a class="btn btn-sm btn-outline-primary" href="{% url 'expenses' %}">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for exp in recent_expenses %}
+                                <tr>
+                                    <td>{{ exp.date|date:"d M" }}</td>
+                                    <td>{{ exp.category }}</td>
+                                    <td class="text-danger">-₹{{ exp.total_amount }}</td>
+                                    <td><span class="badge bg-light text-dark">{{ exp.payment_method }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No recent expenses found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-            <div class="bg-primary bg-opacity-10 rounded p-3">
-              <i class="fas fa-wallet text-primary fa-lg"></i>
+        </div>
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="{% url 'income' %}" class="btn btn-outline-primary w-100 text-start p-3">
+                                <i class="fas fa-rupee-sign me-2"></i>
+                                <div class="fw-bold">Record Income</div>
+                                <small class="text-muted">Add new income entry</small>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'expenses' %}" class="btn btn-outline-primary w-100 text-start p-3">
+                                <i class="fas fa-receipt me-2"></i>
+                                <div class="fw-bold">Record Expense</div>
+                                <small class="text-muted">Add business expense</small>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'purchases' %}" class="btn btn-outline-primary w-100 text-start p-3">
+                                <i class="fas fa-shopping-cart me-2"></i>
+                                <div class="fw-bold">Record Purchase</div>
+                                <small class="text-muted">Add vendor purchase</small>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary w-100 text-start p-3">
+                                <i class="fas fa-hand-holding-usd me-2"></i>
+                                <div class="fw-bold">Record Advance</div>
+                                <small class="text-muted">Add employee advance</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
-  
-  <!-- Financial Overview -->
-  <div class="row mb-4 g-4">
-    <div class="col-lg-8">
-      <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Financial Overview</h5>
-          <div class="btn-group" id="chart-period">
-            <button class="btn btn-sm btn-outline-secondary active" data-period="Weekly">Weekly</button>
-            <button class="btn btn-sm btn-outline-secondary" data-period="Monthly">Monthly</button>
-            <button class="btn btn-sm btn-outline-secondary" data-period="yearly">Yearly</button>
-          </div>
-        </div>
-        <div class="card-body" style="height: 300px;">
-          <canvas id="financialChart"></canvas>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4">
-      <div class="card h-100">
-        <div class="card-header">
-          <h5 class="mb-0">Cash Flow</h5>
-        </div>
-        <div class="card-body" style="height: 300px;">
-          <canvas id="cashFlowChart"></canvas>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'fine/js/dashboard.js' %}"></script>
 {% endblock %}

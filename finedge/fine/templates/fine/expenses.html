@@ -4,121 +4,167 @@
 
 {% block content %}
 <div class="container-fluid p-0">
-    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4 p-4">
         <div>
             <h1 class="page-title fs-2 fw-bold">Expense Management</h1>
             <p class="page-subtitle text-muted">Track and categorize business expenses</p>
         </div>
-        <button class="btn btn-primary" id="addExpenseBtn" data-bs-toggle="modal" data-bs-target="#addExpenseModalDetailed">
+        <button class="btn btn-primary shadow-sm" onclick="resetForm()" data-bs-toggle="modal" data-bs-target="#expenseModal">
             <i class="fas fa-plus me-2"></i>Add Expense
         </button>
     </div>
 
-    <div class="card">
-        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom">
-            <h5 class="card-title mb-0">Expenses</h5>
+    <div class="card mx-4 shadow-sm border-0">
+        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+            <h5 class="card-title mb-0 fw-bold">Expenses</h5>
             <div class="grid-actions">
-                <button class="btn btn-sm btn-outline-primary" id="exportExpensesBtn">
+                <button class="btn btn-sm btn-outline-primary border-0 me-2" id="exportExpensesBtn">
                     <i class="fas fa-file-export me-1"></i>Export
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" id="filterExpensesBtn">
+                <button class="btn btn-sm btn-outline-secondary border-0" id="filterExpensesBtn">
                     <i class="fas fa-filter me-1"></i>Filter
                 </button>
             </div>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover" id="expensesTable">
-                <thead>
+            <table class="table table-hover align-middle mb-0" id="expensesTable">
+                <thead class="bg-light">
                     <tr>
-                        <th>Date</th>
+                        <th class="ps-4">Date</th>
                         <th>Category</th>
                         <th>Description</th>
                         <th>Amount</th>
                         <th>Quantity</th>
                         <th>Total</th>
                         <th>Payment Method</th>
-                        <th>Actions</th>
+                        <th class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="expensesTableBody">
+                <tbody>
+                    {% for expense in expenses %}
                     <tr>
-                        <td colspan="8" class="text-center py-4">No expenses recorded yet</td>
+                        <td class="ps-4 text-nowrap">{{ expense.date|date:"d M Y" }}</td>
+                        <td><span class="badge bg-info-subtle text-info-emphasis px-3">{{ expense.category }}</span></td>
+                        <td class="text-muted">{{ expense.description|default:"-" }}</td>
+                        <td>₹{{ expense.unit_price }}</td>
+                        <td>{{ expense.quantity }} {{ expense.unit }}</td>
+                        <td class="fw-bold text-primary">₹{{ expense.total_amount }}</td>
+                        <td>
+                            <small class="text-uppercase fw-semibold text-muted">{{ expense.payment_method }}</small>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-light text-primary" 
+                                    onclick="editExpense('{{ expense.id }}', '{{ expense.date|date:'Y-m-d' }}', '{{ expense.category }}', '{{ expense.unit_price }}', '{{ expense.quantity }}', '{{ expense.unit }}', '{{ expense.payment_method }}', '{{ expense.description|default_if_none:'' }}')"
+                                    data-bs-toggle="modal" data-bs-target="#expenseModal">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="POST" action="{% url 'delete_expense' expense.pk %}" class="d-inline" onsubmit="return confirm('Delete this record?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-light text-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="fas fa-receipt fa-3x mb-3 d-block opacity-25"></i>
+                            No expenses recorded yet
+                        </td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<div class="modal fade" id="addExpenseModalDetailed" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Record New Expense</h5>
+<div class="modal fade" id="expenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form method="POST" action="{% url 'expenses' %}" class="modal-content border-0 shadow">
+            {% csrf_token %}
+            <input type="hidden" name="expense_id" id="modal_expense_id">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="modalTitle">Record New Expense</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="expenseFormDetailed" class="form-horizontal">
-                    <div class="mb-3 row">
-                        <label class="col-sm-3 col-form-label fw-bold">Date</label>
-                        <div class="col-sm-9">
-                            <input class="form-control" type="date" id="expenseDate" required>
-                        </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Date</label>
+                        <input type="date" name="date" id="modal_date" class="form-control" required>
                     </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-3 col-form-label fw-bold">Expense Category</label>
-                        <div class="col-sm-9">
-                            <div class="d-flex gap-2">
-                                <select class="form-select" id="expenseCategory" required>
-                                    <option value="">Select Category</option>
-                                    <option>Beta & OT</option>
-                                    <option>Daily Salary</option>
-                                    <option>Electricity</option>
-                                    <option>Petrol & Diesel</option>
-                                    <option>Phone Bill</option>
-                                    <option>Rental</option>
-                                    <option>Wages</option>
-                                </select>
-                                <button type="button" class="btn btn-primary" id="addExpenseCategoryBtn">+</button>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Category</label>
+                        <select name="category" id="modal_category" class="form-select" required>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-3 col-form-label fw-bold">Unit Price (₹)</label>
-                        <div class="col-sm-9">
-                            <input class="form-control" type="number" id="expenseUnitPrice" placeholder="Enter unit price" required>
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-uppercase">Unit Price (₹)</label>
+                        <input type="number" step="0.01" name="unit_price" id="modal_price" class="form-control" placeholder="0.00" required>
                     </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-3 col-form-label fw-bold">Quantity</label>
-                        <div class="col-sm-9">
-                            <div class="d-flex gap-2">
-                                <input class="form-control" type="number" id="expenseQuantity" min="1" placeholder="Enter quantity" required>
-                                <select class="form-select" style="max-width: 120px;" id="expenseUnit" required>
-                                    <option value="pcs">pcs</option>
-                                    <option value="kg">kg</option>
-                                    <option value="liters">liters</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-uppercase">Quantity</label>
+                        <input type="number" step="0.01" name="quantity" id="modal_qty" class="form-control" placeholder="1" required>
                     </div>
-                    
-                    <div class="mb-3 row">
-                         <label class="col-sm-3 col-form-label fw-bold">Description</label>
-                         <div class="col-sm-9">
-                             <textarea class="form-control" id="expenseDescription" rows="3"></textarea>
-                         </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-uppercase">Unit</label>
+                        <select name="unit" id="modal_unit" class="form-select">
+                            {% for u in units %}
+                                <option value="{{ u }}">{{ u }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </form>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-uppercase">Payment Method</label>
+                        <select name="payment_method" id="modal_payment" class="form-select">
+                            {% for pm in payment_methods %}
+                                <option value="{{ pm }}">{{ pm }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-uppercase">Description</label>
+                        <textarea name="description" id="modal_desc" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" id="saveExpenseBtn">Save Expense</button>
+            <div class="modal-footer border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary px-4 shadow-sm">Save </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editExpense(id, date, cat, price, qty, unit, pay, desc) {
+    document.getElementById('modalTitle').innerText = "Edit Expense Record";
+    document.getElementById('modal_expense_id').value = id;
+    document.getElementById('modal_date').value = date;
+    document.getElementById('modal_category').value = cat;
+    document.getElementById('modal_price').value = price;
+    document.getElementById('modal_qty').value = qty;
+    document.getElementById('modal_unit').value = unit;
+    document.getElementById('modal_payment').value = pay;
+    document.getElementById('modal_desc').value = desc;
+}
+
+function resetForm() {
+    document.getElementById('modalTitle').innerText = "Record New Expense";
+    document.getElementById('modal_expense_id').value = "";
+    document.getElementById('modal_date').value = "{{ today_date }}";
+    document.getElementById('modal_price').value = "";
+    document.getElementById('modal_qty').value = "";
+    document.getElementById('modal_desc').value = "";
+}
+</script>
 {% endblock %}
