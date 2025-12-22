@@ -54,6 +54,9 @@ class JSDCApplication {
             // Initialize Income Manager
             this.incomeManager = new IncomeManager();
             
+            // Initialize Category System
+            CategoryManager.initialize();
+            
             // Show dashboard by default
             this.navigateToPage('dashboard');
             

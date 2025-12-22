@@ -4,10 +4,9 @@
 
 {% block content %}
 <div class="container-fluid p-0">
-    <div class="page-header d-flex justify-content-between align-items-center mb-4 p-4">
+    <div class="incomehead d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="page-title fs-2 fw-bold">Income Management</h1>
-            <p class="page-subtitle text-muted">Track your income here</p>
+            <h2 class="mb-1">Income</h2>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <div class="date-controls d-flex gap-2">
@@ -86,17 +85,9 @@
         </div>
     </div>
 
-    <div class="card mx-4 shadow-sm border-0">
-        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
-            <h5 class="card-title mb-0 fw-bold">Recent Income</h5>
-            <div class="grid-actions">
-                <button class="btn btn-sm btn-outline-primary border-0 me-2" id="exportExpensesBtn">
-                    <i class="fas fa-file-export me-1"></i>Export
-                </button>
-                <button class="btn btn-sm btn-outline-secondary border-0" id="filterExpensesBtn">
-                    <i class="fas fa-filter me-1"></i>Filter
-                </button>
-            </div>
+    <div class="card income-transactions-table">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Recent Income</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -242,4 +233,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Date Selector Logging
+    const dateSelector = document.getElementById('dateSelector');
+    if (dateSelector) {
+        dateSelector.addEventListener('change', function() {
+            console.log("Date changed to:", this.value);
+            // Future: add redirection logic here for filtering
+        });
+    }
+
+    // 2. Autofocus Modal Input
+    const addIncomeModal = document.getElementById('addIncomeModal');
+    if (addIncomeModal) {
+        addIncomeModal.addEventListener('shown.bs.modal', function () {
+            const firstInput = addIncomeModal.querySelector('input[name="description"]');
+            if (firstInput) firstInput.focus();
+        });
+    }
+});
+</script>
 {% endblock %}
