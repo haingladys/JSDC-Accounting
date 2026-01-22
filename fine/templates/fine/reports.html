@@ -1,0 +1,220 @@
+{% extends 'fine/base.html' %}
+{% load static %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div id="reports-page">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Reports & Analytics</h2>
+      <p class="text-muted mb-0">Generate comprehensive reports with date range and filters</p>
+    </div>
+  </div>
+
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">From Date</label>
+          <input type="date" class="form-control" id="reportFromDate">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">To Date</label>
+          <input type="date" class="form-control" id="reportToDate">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Quick Period</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="period" id="daily" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="daily">Day</label>
+
+            <input type="radio" class="btn-check" name="period" id="weekly" autocomplete="off">
+            <label class="btn btn-outline-primary" for="weekly">Week</label>
+
+            <input type="radio" class="btn-check" name="period" id="monthly" autocomplete="off">
+            <label class="btn btn-outline-primary" for="monthly">Month</label>
+          </div>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label small fw-bold">Report Category</label>
+          <select class="form-select" id="reportType">
+            <option value="all" selected>All Reports (Combined)</option>
+            <option value="income">Income Report</option>
+            <option value="expense">Expense Report</option>
+            <option value="purchase">Purchase Report</option>
+            <option value="payroll">Payroll Report</option>
+            <option value="attendance">Attendance Report</option>
+          </select>
+        </div>
+
+        <div class="col-12 d-flex justify-content-between align-items-center mt-3">
+          <button class="btn btn-primary px-4" id="viewReportBtn">
+            <i class="fas fa-chart-bar me-2"></i>Generate Report
+          </button>
+          <div class="btn-group">
+            <button class="btn btn-outline-success" id="exportExcelBtn" disabled>
+              <i class="fas fa-file-excel me-1"></i> Excel
+            </button>
+            <button class="btn btn-outline-danger" id="exportPdfBtn" disabled>
+              <i class="fas fa-file-pdf me-1"></i> PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="reportLoading" class="text-center py-5" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2 text-muted">Analyzing financial records...</p>
+  </div>
+
+  <div id="reportSummaryCards" class="row mb-4 g-4" style="display: none;">
+    </div>
+
+  <div id="reportResults" class="card shadow-sm border-0" style="display: none;">
+    <div class="card-body p-0">
+      <div id="reportContent">
+        </div>
+    </div>
+  </div>
+</div>
+
+<template id="incomeReportTemplate">
+  <div class="report-section mb-5">
+    <div class="section-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-rupee-sign me-2 text-success"></i>Income Report</h5>
+      <span class="badge bg-success">Period: <span class="period-label">Daily</span></span>
+    </div>
+    <div class="section-content p-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Payment Mode</th>
+              <th class="text-end">Amount (₹)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="incomeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="expenseReportTemplate">
+  <div class="report-section mb-5">
+    <div class="section-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-receipt me-2 text-danger"></i>Expense Report</h5>
+      <span class="badge bg-danger">Period: <span class="period-label">Daily</span></span>
+    </div>
+    <div class="section-content p-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th class="text-end">Amount (₹)</th>
+              <th>Payment Method</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="purchaseReportTemplate">
+  <div class="report-section mb-5">
+    <div class="section-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-shopping-cart me-2 text-primary"></i>Purchase Report</h5>
+      <span class="badge bg-primary">Period: <span class="period-label">Daily</span></span>
+    </div>
+    <div class="section-content p-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Vendor</th>
+              <th>Category</th>
+              <th>Bill No</th>
+              <th class="text-end">Total (₹)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="purchaseTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="payrollReportTemplate">
+  <div class="report-section mb-5">
+    <div class="section-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-users me-2 text-info"></i>Payroll Report</h5>
+      <span class="badge bg-info">Period: <span class="period-label">Monthly</span></span>
+    </div>
+    <div class="section-content p-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Date Paid</th>
+              <th class="text-end">Basic (₹)</th>
+              <th class="text-end">Incentives (₹)</th>
+              <th class="text-end">Net Salary (₹)</th>
+              <th>Payment Mode</th>
+            </tr>
+          </thead>
+          <tbody id="payrollTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="attendanceReportTemplate">
+  <div class="report-section mb-5">
+    <div class="section-header d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+      <h5 class="mb-0 fw-bold"><i class="fas fa-calendar-check me-2 text-warning"></i>Attendance Report</h5>
+      <span class="badge bg-warning">Period: <span class="period-label">Daily</span></span>
+    </div>
+    <div class="section-content p-3">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th class="text-center">Present</th>
+              <th class="text-center">Half Day</th>
+              <th class="text-center">Absent</th>
+              <th class="text-center">Full Day Equiv.</th>
+              <th class="text-center">Attendance %</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'fine/js/reports.js' %}"></script>
+{% endblock %}

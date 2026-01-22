@@ -1,0 +1,264 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+<div id="expenses-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Expense Management</h2>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <div class="date-range-controls d-flex gap-2">
+                <input type="date" class="form-control form-control-sm" id="startDate" 
+                       style="width: 140px;" value="{{ start_date }}">
+                <span class="align-self-center">to</span>
+                <input type="date" class="form-control form-control-sm" id="endDate"
+                       style="width: 140px;" value="{{ end_date }}">
+            </div>
+
+            <button class="btn btn-primary" id="addExpenseBtn">
+                <i class="fas fa-plus me-1"></i> Add Expense
+            </button>
+        </div>
+    </div>
+
+    <div class="row mb-4 g-4">
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-blue">
+                <div class="summary-icon-v2"><i class="fas fa-money-bill-wave"></i></div>
+                <div class="summary-details-v2">
+                    <p>Total Expenses</p>
+                    <h3 id="total-expenses">₹{{ total_expenses|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-purple">
+                <div class="summary-icon-v2"><i class="fas fa-users"></i></div>
+                <div class="summary-details-v2">
+                    <p>Payroll Expenses</p>
+                    <h3 id="payroll-expenses">₹{{ payroll_expenses|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-green">
+                <div class="summary-icon-v2"><i class="fas fa-shopping-cart"></i></div>
+                <div class="summary-details-v2">
+                    <p>Other Expenses</p>
+                    <h3 id="other-expenses">₹{{ other_expenses|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+            <h5 class="card-title mb-0 fw-bold">Expenses</h5>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="showPayrollOnly" onchange="filterPayrollExpenses(this.checked)">
+                <label class="form-check-label small" for="showPayrollOnly">Show Payroll Only</label>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="expensesTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Voucher No</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount(₹)</th>
+                            <th>Payment Method</th>
+                            <th>Type</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expensesTableBody">
+                        {% for expense in expenses %}
+                        <tr data-category="{{ expense.category }}">
+                            <td class="text-nowrap">{{ expense.date|date:"d-m-Y" }}</td>
+                            <td class="fw-semibold">{{ expense.voucher_no|default:"-" }}</td>
+                            <td>
+                                <span class="badge {% if expense.category == 'Salary' %}bg-primary{% else %}bg-info-subtle text-info-emphasis{% endif %} px-3 py-1">
+                                    {{ expense.category }}
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ expense.description|default:"-" }}</td>
+                            <td class="fw-bold text-primary text-end">₹{{ expense.total_amount }}</td>
+                            <td>{{ expense.payment_method }}</td>
+                            <td>
+                                {% if expense.category == 'Salary' %}
+                                <span class="badge bg-primary-subtle text-primary px-2 py-1">Payroll</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary px-2 py-1">Regular</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    {% if expense.category != 'Salary' %}
+                                    <button class="btn btn-sm btn-light text-primary"
+                                            onclick="editExpense('{{ expense.id }}', '{{ expense.date|date:'Y-m-d' }}', '{{ expense.voucher_no|default:'' }}', '{{ expense.category }}', '{{ expense.total_amount }}', '{{ expense.payment_method }}', '{{ expense.description|default:'' }}')"
+                                            data-bs-toggle="modal" data-bs-target="#expenseModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{% url 'delete_expense' expense.pk %}" class="d-inline" onsubmit="return confirm('Delete this record?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-light text-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-light text-info" onclick="viewPayrollDetails('{{ expense.payroll.id }}')" {% if not expense.payroll %}disabled{% endif %}>
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="8" class="text-center py-5 text-muted">No expenses recorded yet</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="expenseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form method="POST" action="{% url 'expenses' %}" class="modal-content border-0 shadow" id="expenseEntryForm">
+            {% csrf_token %}
+            <input type="hidden" name="expense_id" id="modal_expense_id">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="modalTitle">Record New Expense</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Date *</label>
+                        <input type="date" name="date" id="modal_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Voucher No</label>
+                        <input type="text" name="voucher_no" id="modal_voucher" class="form-control" placeholder="Optional">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Category *</label>
+                        <div class="input-group">
+                            <select name="category" id="modal_category" class="form-select" required>
+                                <option value="" disabled selected>Select Category</option>
+                                {% for cat in categories %}
+                                    {% if cat != 'Salary' %}<option value="{{ cat }}">{{ cat }}</option>{% endif %}
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-primary" type="button" id="toggleNewCategory"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="newCategoryContainer" class="mt-2" style="display: none;">
+                            <input type="text" id="custom_category" class="form-control" placeholder="Enter new category name">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-uppercase">Payment Method *</label>
+                        <select name="payment_method" id="modal_payment" class="form-select" required>
+                            <option value="" disabled selected>Select Method</option>
+                            {% for pm in payment_methods %}
+                                {% if pm != 'Salary' %}<option value="{{ pm }}">{{ pm }}</option>{% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold text-uppercase">Total Amount (₹) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.01" min="0" name="total_amount" id="modal_total"
+                                   class="form-control" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold text-uppercase">Description</label>
+                        <textarea name="description" id="modal_desc" class="form-control" rows="3" placeholder="Notes..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function editExpense(id, date, voucher, category, total, pay, desc) {
+    document.getElementById('modalTitle').innerText = "Edit Expense Record";
+    document.getElementById('modal_expense_id').value = id;
+    document.getElementById('modal_date').value = date;
+    document.getElementById('modal_voucher').value = voucher;
+    document.getElementById('modal_category').value = category;
+    document.getElementById('modal_total').value = total; // Populates correctly
+    document.getElementById('modal_payment').value = pay;
+    document.getElementById('modal_desc').value = desc;
+    resetCategoryUI();
+}
+
+function resetForm() {
+    document.getElementById('modalTitle').innerText = "Record New Expense";
+    document.getElementById('modal_expense_id').value = "";
+    document.getElementById('modal_date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('modal_voucher').value = "";
+    document.getElementById('modal_category').value = "";
+    document.getElementById('modal_total').value = "";
+    document.getElementById('modal_payment').value = "";
+    document.getElementById('modal_desc').value = "";
+    resetCategoryUI();
+}
+
+const toggleBtn = document.getElementById('toggleNewCategory');
+const container = document.getElementById('newCategoryContainer');
+const select = document.getElementById('modal_category');
+const customInput = document.getElementById('custom_category');
+
+function resetCategoryUI() {
+    container.style.display = 'none';
+    select.disabled = false;
+    select.name = 'category';
+    customInput.name = '';
+    toggleBtn.innerHTML = '<i class="fas fa-plus"></i>';
+}
+
+toggleBtn.addEventListener('click', function() {
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        select.disabled = true;
+        select.name = '';
+        customInput.name = 'category';
+        toggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+    } else {
+        resetCategoryUI();
+    }
+});
+
+document.getElementById('addExpenseBtn').addEventListener('click', function() {
+    resetForm();
+    new bootstrap.Modal(document.getElementById('expenseModal')).show();
+});
+
+function filterPayrollExpenses(showOnlyPayroll) {
+    const rows = document.querySelectorAll('#expensesTable tbody tr');
+    rows.forEach(row => {
+        if (showOnlyPayroll) {
+            const cat = row.getAttribute('data-category');
+            row.style.display = (cat === 'Salary') ? '' : 'none';
+        } else {
+            row.style.display = '';
+        }
+    });
+}
+</script>
+{% endblock %}

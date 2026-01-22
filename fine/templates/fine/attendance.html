@@ -1,0 +1,200 @@
+{% extends 'fine/base.html' %}
+{% load static %}
+
+{% block title %}Attendance Management{% endblock %}
+
+{% block content %}
+<!-- Attendance Management Page -->
+<div id="attendance-page">
+  <div class="attendance-header">
+    <div>
+      <h2 class="mb-1">Attendance Management</h2>
+    <!--  <p class="text-muted mb-0">Track employee attendance for current week</p> -->
+    </div>
+    <div class="attendance-controls">
+      
+      <button class="btn btn-info" id="view-records-btn">
+        <i class="fas fa-eye me-1"></i> View Records
+      </button>
+      
+    </div>
+  </div>
+
+  <!-- Summary Cards (Today's attendance only) -->
+  <div class="row mb-4 g-4">
+      <div class="col-md-3">
+          <div class="summary-card-v2 card-blue">
+              <div class="summary-icon-v2"><i class="fas fa-users"></i></div>
+              <div class="summary-details-v2"><p>Total Employees</p><h3 id="total-employees-count">0</h3></div>
+          </div>
+      </div>
+      <div class="col-md-3">
+          <div class="summary-card-v2 card-green">
+              <div class="summary-icon-v2"><i class="fas fa-user-check"></i></div>
+              <div class="summary-details-v2"><p>Present Today</p><h3 id="today-present-count">0</h3></div>
+          </div>
+      </div>
+      <div class="col-md-3">
+          <div class="summary-card-v2 card-orange">
+              <div class="summary-icon-v2"><i class="fas fa-user-clock"></i></div>
+              <div class="summary-details-v2"><p>Half Days Today</p><h3 id="today-halfday-count">0</h3></div>
+          </div>
+      </div>
+      <div class="col-md-3">
+          <div class="summary-card-v2 card-red">
+              <div class="summary-icon-v2"><i class="fas fa-user-times"></i></div>
+              <div class="summary-details-v2"><p>Absent Today</p><h3 id="today-absent-count">0</h3></div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Weekly Attendance Table -->
+  <div class="card weekly-attendance-table">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="weekly-attendance-table">
+          <thead>
+            <tr>
+              <th class="employee-name-column">Employee Name</th>
+              <!-- Dynamic week headers will be inserted here -->
+              <th class="actions-column">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="weekly-attendance-body">
+            <!-- Employee rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- In attendance.html - Update the View Records Modal -->
+<div class="modal fade" id="viewRecordsModal" tabindex="-1">
+  <div class="modal-dialog modal-xl" style="max-width: 95%;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Attendance Records & Summary</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- Date Range Filter -->
+        <div class="row mb-4 g-3">
+          <div class="col-md-4">
+            <label class="form-label">From Date</label>
+            <input type="date" class="form-control" id="filter-from-date" value="">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">To Date</label>
+            <input type="date" class="form-control" id="filter-to-date" value="">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-primary w-100" id="generate-summary-btn">
+              <i class="fas fa-chart-bar me-1"></i> Generate Summary
+            </button>
+          </div>
+        </div>
+        
+        <!-- Summary Table -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0">Attendance Summary</h6>
+            <small class="text-muted" id="summary-date-range"></small>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" id="attendance-summary-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th class="text-center">Present Days</th>
+                    <th class="text-center">Half Days</th>
+                    <th class="text-center">Absent Days</th>
+                    <th class="text-center">Full Days</th>
+                    <th class="text-center">Total Marked Days</th>
+                  </tr>
+                </thead>
+                <tbody id="attendance-summary-body">
+                  <!-- Summary rows will be inserted here -->
+                </tbody>
+                <tfoot id="attendance-summary-footer" style="display: none;">
+                  <!-- Totals row will be inserted here -->
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+       
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Attendance Modal -->
+<div class="modal fade" id="editAttendanceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Attendance</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editAttendanceForm">
+          <input type="hidden" id="edit-record-id">
+          <input type="hidden" id="edit-employee-id">
+          <input type="hidden" id="edit-date">
+          
+          <div class="mb-3">
+            <label class="form-label">Employee</label>
+            <input type="text" class="form-control" id="edit-attendance-employee-name" readonly>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-control" id="edit-attendance-date">
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="edit-attendance-status">
+              <option value="1">Present</option>
+              <option value="0.5">Half Day</option>
+              <option value="0">Absent</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Notes (Optional)</label>
+            <textarea class="form-control" id="edit-attendance-notes" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="delete-attendance-btn">
+          <i class="fas fa-trash me-1"></i> Delete
+        </button>
+        <button type="button" class="btn btn-primary" id="update-attendance-btn">
+          <i class="fas fa-save me-1"></i> Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'fine/js/attendance.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Modal initialization for this page only
+    const modal = new bootstrap.Modal(document.getElementById('newAddEmployeeModal'));
+});
+</script>
+{% endblock %}

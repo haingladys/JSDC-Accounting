@@ -1,0 +1,388 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Purchase Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="page-header d-flex justify-content-between align-items-center mb-4 p-4">
+        <div>
+            <h1 class="mb-1">Purchase Management</h1>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="date-range-controls d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm">
+                <span class="text-muted small fw-bold">From:</span>
+                <input type="date" class="form-control form-control-sm border-0 bg-light" id="startDate" 
+                       style="width: 130px;" value="{{ start_date }}">
+                <span class="text-muted small fw-bold">To:</span>
+                <input type="date" class="form-control form-control-sm border-0 bg-light" id="endDate" 
+                       style="width: 130px;" value="{{ end_date }}">
+                
+                {% if start_date or end_date %}
+                <a href="{% url 'purchases' %}" class="btn btn-sm btn-outline-secondary ms-1" title="Clear Filter">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <button class="btn btn-primary shadow-sm" onclick="resetForm()" data-bs-toggle="modal" data-bs-target="#purchaseModal">
+                <i class="fas fa-plus me-2"></i>Add Purchase
+            </button>
+        </div>
+    </div>
+
+    <div class="card mx-4 shadow-sm border-0">
+        <div class="grid-header d-flex justify-content-between align-items-center p-3 border-bottom bg-white">
+            <h5 class="card-title mb-0 fw-bold">Purchases List</h5>
+            {% if start_date and end_date %}
+                <span class="badge bg-primary-subtle text-primary">
+                    Filtered: {{ start_date }} to {{ end_date }}
+                </span>
+            {% endif %}
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="purchasesTable">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4">Date</th>
+                        <th>Vendor</th>
+                        <th>Category</th>
+                        <th>Bill No</th>
+                        <th>Total (₹)</th>
+                        <th>GST (₹)</th>
+                        <th>Payment Mode</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in purchases %}
+                    <tr>
+                        <td class="ps-4 text-nowrap">{{ p.date|date:"d-m-Y" }}</td>
+                        <td class="fw-semibold">{{ p.vendor }}</td>
+                        <td><span class="badge bg-info-subtle text-info-emphasis px-3">{{ p.cat.name }}</span></td>
+                        <td class="text-muted">#{{ p.bill_no }}</td>
+                        <td class="fw-bold text-primary">₹{{ p.total_amount }}</td>
+                        <td>₹{{ p.gst_amount }}</td>
+                        <td>
+                            <span class="badge
+                                {% if p.payment_mode == 'Cash' %}bg-success
+                                {% elif p.payment_mode == 'UPI' %}bg-primary
+                                {% elif p.payment_mode == 'Card' %}bg-warning
+                                {% else %}bg-info{% endif %}">
+                                {{ p.payment_mode }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge
+                                {% if p.status == 'Paid' %}bg-success-subtle text-success
+                                {% elif p.status == 'Pending' %}bg-warning-subtle text-warning
+                                {% else %}bg-danger-subtle text-danger{% endif %} px-3">
+                                {{ p.status }}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-light text-primary"
+                                        onclick="editPurchase('{{ p.pk }}', '{{ p.date|date:'Y-m-d' }}', '{{ p.vendor|escapejs }}', '{{ p.cat.id }}', '{{ p.bill_no }}', '{{ p.total_amount }}', '{{ p.gst_amount }}', '{{ p.payment_mode }}', '{{ p.status }}', '{{ p.description|escapejs }}')"
+                                    data-bs-toggle="modal" data-bs-target="#purchaseModal">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <form method="POST" action="{% url 'delete_purchase' p.pk %}" class="d-inline" onsubmit="return confirm('Delete this record?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-light text-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-5 text-muted">No purchases found for this period</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="purchaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form method="POST" action="{% url 'purchases' %}" class="modal-content border-0 shadow" id="purchaseEntryForm">
+            {% csrf_token %}
+            <input type="hidden" name="purchase_id" id="modal_purchase_id">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="modalTitle">Record Purchase</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Date</label>
+                        <input type="date" name="date" id="modal_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Vendor</label>
+                        <div class="input-group">
+                            <select name="vendor" id="modal_vendor" class="form-select">
+                                <option value="">Select Vendor</option>
+                                {% for v in vendor_choices %}
+                                    <option value="{{ v }}">{{ v }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-primary" type="button" id="toggleVendorBtn" title="Add New Vendor">+</button>
+                        </div>
+                        <input type="text" id="custom_vendor" name="custom_vendor" class="form-control mt-2" style="display: none;" placeholder="Enter new vendor name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Category</label>
+                        <div class="input-group">
+                            <select name="cat" id="modal_cat" class="form-select" required>
+                                <option value="">Select Category</option>
+                                {% for c in cat_choices %}
+                                    <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" id="toggleCatBtn" title="Add New Category">+</button>
+                        </div>
+                        <div id="new_cat_container" style="display: none;" class="mt-2">
+                            <div class="input-group">
+                                <input type="text" id="new_cat_name" class="form-control form-control-sm" placeholder="New category name">
+                                <button class="btn btn-success btn-sm" type="button" id="saveCatBtn">Save</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Bill No</label>
+                        <input type="text" name="bill_no" id="modal_bill_no" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Total Amount (₹)</label>
+                        <input type="number" step="0.01" name="total_amount" id="modal_total_amount" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">GST Amount (₹)</label>
+                        <input type="number" step="0.01" name="gst_amount" id="modal_gst_amount" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Mode of Payment</label>
+                        <select name="payment_mode" id="modal_payment_mode" class="form-select" required>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Card">Card</option>
+                            <option value="Net Banking">Net Banking</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Status</label>
+                        <select name="status" id="modal_status" class="form-select" required>
+                            <option value="Paid">Paid</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Due">Due</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Description</label>
+                        <textarea name="description" id="modal_description" class="form-control" rows="2" placeholder="Optional description or notes"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary px-4">Save Purchase</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // --- VARIABLES ---
+    const vToggleBtn = document.getElementById('toggleVendorBtn');
+    const vSelect = document.getElementById('modal_vendor');
+    const vInput = document.getElementById('custom_vendor');
+    const toggleCatBtn = document.getElementById('toggleCatBtn');
+    const newCatContainer = document.getElementById('new_cat_container');
+    const saveCatBtn = document.getElementById('saveCatBtn');
+    const catSelect = document.getElementById('modal_cat');
+
+    // --- DATE FILTER LOGIC ---
+    let dateFilterTimeout;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+
+        if (startDateInput && endDateInput) {
+            // Add listeners
+            startDateInput.addEventListener('change', autoApplyDateFilter);
+            endDateInput.addEventListener('change', autoApplyDateFilter);
+        }
+    });
+
+    function autoApplyDateFilter() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // Only filter if BOTH dates are present
+        if (!startDate || !endDate) return;
+
+        // Validate range
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date cannot be after End date!');
+            return;
+        }
+
+        // Show Loading
+        showLoading();
+
+        // Delay slightly to prevent double submission, then reload page with params
+        if (dateFilterTimeout) clearTimeout(dateFilterTimeout);
+        
+        dateFilterTimeout = setTimeout(() => {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('start_date', startDate);
+            urlParams.set('end_date', endDate);
+            window.location.href = `?${urlParams.toString()}`;
+        }, 500);
+    }
+
+    function showLoading() {
+        const tableBody = document.querySelector('#purchasesTable tbody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Filtering purchases...</p>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    // --- VENDOR TOGGLE ---
+    vToggleBtn.addEventListener('click', function() {
+        if (vInput.style.display === 'none' || vInput.style.display === '') {
+            vInput.style.display = 'block';
+            vSelect.disabled = true;
+            vSelect.required = false;
+            vInput.required = true;
+            vToggleBtn.innerText = 'x';
+            vToggleBtn.classList.replace('btn-outline-primary', 'btn-outline-danger');
+        } else {
+            vInput.style.display = 'none';
+            vSelect.disabled = false;
+            vSelect.required = true;
+            vInput.required = false;
+            vInput.value = '';
+            vToggleBtn.innerText = '+';
+            vToggleBtn.classList.replace('btn-outline-danger', 'btn-outline-primary');
+        }
+    });
+
+    // --- CATEGORY TOGGLE ---
+    toggleCatBtn.addEventListener('click', function() {
+        if (newCatContainer.style.display === 'none') {
+            newCatContainer.style.display = 'block';
+            toggleCatBtn.innerText = 'x';
+            toggleCatBtn.classList.replace('btn-outline-secondary', 'btn-outline-danger');
+        } else {
+            newCatContainer.style.display = 'none';
+            toggleCatBtn.innerText = '+';
+            toggleCatBtn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+        }
+    });
+
+    // --- SAVE CATEGORY AJAX ---
+    saveCatBtn.addEventListener('click', function() {
+        const catName = document.getElementById('new_cat_name').value.trim();
+        if (!catName) {
+            alert("Please enter a category name.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('name', catName);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        fetch("{% url 'add_category_ajax' %}", {
+            method: "POST",
+            body: formData,
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const newOption = new Option(data.name, data.id, true, true);
+                catSelect.add(newOption);
+                document.getElementById('new_cat_name').value = '';
+                newCatContainer.style.display = 'none';
+                toggleCatBtn.innerText = '+';
+                toggleCatBtn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+            } else {
+                alert("Error adding category.");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    // --- EDIT & RESET ---
+    function editPurchase(id, date, vendor, catId, bill, total, gst, payMode, status, desc) {
+        document.getElementById('modalTitle').innerText = "Edit Purchase Record";
+        document.getElementById('modal_purchase_id').value = id;
+        document.getElementById('purchaseEntryForm').action = "{% url 'purchases' %}"; // Use same URL, backend handles ID check
+
+        document.getElementById('modal_date').value = date;
+
+        let vendorSelect = document.getElementById('modal_vendor');
+        let vendorExists = Array.from(vendorSelect.options).some(option => option.value === vendor);
+
+        if (vendorExists) {
+            document.getElementById('modal_vendor').value = vendor;
+            vInput.style.display = 'none';
+            vSelect.disabled = false;
+            vToggleBtn.innerText = '+';
+            vToggleBtn.classList.replace('btn-outline-danger', 'btn-outline-primary');
+        } else {
+            vSelect.value = '';
+            vInput.style.display = 'block';
+            vInput.value = vendor;
+            vSelect.disabled = true;
+            vToggleBtn.innerText = 'x';
+            vToggleBtn.classList.replace('btn-outline-primary', 'btn-outline-danger');
+        }
+
+        document.getElementById('modal_cat').value = catId;
+        document.getElementById('modal_bill_no').value = bill;
+        document.getElementById('modal_total_amount').value = total;
+        document.getElementById('modal_gst_amount').value = gst;
+        document.getElementById('modal_payment_mode').value = payMode;
+        document.getElementById('modal_status').value = status;
+        document.getElementById('modal_description').value = desc || '';
+    }
+
+    function resetForm() {
+        document.getElementById('modalTitle').innerText = "Record New Purchase";
+        document.getElementById('modal_purchase_id').value = "";
+        document.getElementById('purchaseEntryForm').reset();
+        
+        // Set Today's Date by Default
+        document.getElementById('modal_date').valueAsDate = new Date();
+
+        vInput.style.display = 'none';
+        vSelect.disabled = false;
+        vSelect.required = true;
+        vToggleBtn.innerText = '+';
+        vToggleBtn.classList.replace('btn-outline-danger', 'btn-outline-primary');
+
+        newCatContainer.style.display = 'none';
+        toggleCatBtn.innerText = '+';
+        toggleCatBtn.classList.replace('btn-outline-danger', 'btn-outline-secondary');
+
+        document.getElementById('modal_gst_amount').value = 0;
+        document.getElementById('modal_payment_mode').value = 'Cash';
+        document.getElementById('modal_status').value = 'Paid';
+    }
+</script>
+{% endblock %}

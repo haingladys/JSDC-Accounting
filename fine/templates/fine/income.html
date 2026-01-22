@@ -1,0 +1,278 @@
+{% extends 'fine/base.html' %}
+
+{% block title %}Income Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="incomehead d-flex justify-content-between align-items-center mb-4">
+        <div>
+             <h2 class="mb-1">Income Management</h2>
+             <small class="text-muted">{{ display_date_info }}</small>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="date-range-controls d-flex gap-2 align-items-center bg-white p-2 rounded shadow-sm">
+                <span class="text-muted small fw-bold">From:</span>
+                <input type="date" class="form-control form-control-sm border-0 bg-light" id="startDate" 
+                       style="width: 130px;" value="{{ start_date }}">
+                <span class="text-muted small fw-bold">To:</span>
+                <input type="date" class="form-control form-control-sm border-0 bg-light" id="endDate" 
+                       style="width: 130px;" value="{{ end_date }}">
+                
+                {% if start_date or end_date %}
+                <a href="{% url 'income' %}" class="btn btn-sm btn-outline-secondary ms-1" title="Clear Filter">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </div>
+
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIncomeModal" onclick="resetForm()">
+                <i class="fas fa-plus me-1"></i> Add Income
+            </button>
+        </div>
+    </div>
+        
+    <div class="row mb-4 g-4">
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-blue">
+                <div class="summary-icon-v2"><i class="fas fa-calendar-day"></i></div>
+                 <div class="summary-details-v2">
+                    <p>Today's Income</p>
+                    <h3 id="daily-income">₹{{ daily_total|default:"0" }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-purple">
+                <div class="summary-icon-v2"><i class="fas fa-calendar-week"></i></div>
+                 <div class="summary-details-v2">
+                    <p>This Week</p>
+                    <h3 id="weekly-income">₹{{ weekly_total|default:"0" }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-orange">
+                <div class="summary-icon-v2"><i class="fas fa-calendar-alt"></i></div>
+                <div class="summary-details-v2">
+                    <p>This Month</p>
+                    <h3 id="monthly-income">₹{{ monthly_total|default:"0" }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-3">
+            <div class="summary-card-v2 card-green">
+                <div class="summary-icon-v2"><i class="fas fa-rupee-sign"></i></div>
+                <div class="summary-details-v2">
+                    <p>{% if start_date and end_date %}Filtered Total{% else %}Total Income{% endif %}</p>
+                    <h3 id="total-income">₹{{ total_sum|default:"0" }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card income-transactions-table">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="incomeTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Mode</th>
+                            <th>Amount(₹)</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in income_records %}
+                        <tr>
+                           <td>{{ item.date|date:"d-m-Y" }}</td>
+                            <td>{{ item.description }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.payment_mode }}</span></td>
+                            <td><strong>{{ item.amount }}</strong></td>
+                             <td>
+                                <span class="badge {% if item.status == 'Received' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item.pk }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                
+                                <form action="{% url 'delete_income' item.pk %}" method="POST" class="d-inline" onsubmit="return confirm('Delete this record?');">
+                                      {% csrf_token %}
+                                    <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <div class="modal fade" id="editModal{{ item.pk }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST" action="{% url 'edit_income' item.pk %}">
+                                        {% csrf_token %}
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Income Record</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Date</label>
+                                            <input class="form-control" name="date" type="date" value="{{ item.date|date:'Y-m-d' }}" required/>
+                                        </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Description</label>
+                                                <input class="form-control" name="description" type="text" value="{{ item.description }}" required/>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Amount (₹)</label>
+                                                <input class="form-control" name="amount" type="number" step="0.01" value="{{ item.amount }}" required/>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Payment Mode</label>
+                                                <select class="form-select" name="payment_mode">
+                                                    {% for mode in payment_modes %}
+                                                    <option value="{{ mode }}" {% if item.payment_mode == mode %}selected{% endif %}>{{ mode }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Status</label>
+                                                <select class="form-select" name="status">
+                                                    {% for s in status_choices %}
+                                                    <option value="{{ s }}" {% if item.status == s %}selected{% endif %}>{{ s }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary">Update Changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No records found for this period.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addIncomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'income' %}" id="incomeForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Record New Income</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input class="form-control" name="date" required type="date" value="{{ today_date }}"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <input class="form-control" name="description" required type="text" placeholder="Enter description"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Amount (₹)</label>
+                        <input class="form-control" name="amount" required type="number" step="0.01" placeholder="0.00"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Mode</label>
+                        <select class="form-select" name="payment_mode" required>
+                            <option value="">Select Mode</option>
+                            {% for mode in payment_modes %}
+                            <option value="{{ mode }}">{{ mode }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" required>
+                            {% for status in status_choices %}
+                            <option value="{{ status }}">{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    let filterTimeout;
+
+    // --- Function to Apply Filter ---
+    function applyDateFilter() {
+        const start = startDateInput.value;
+        const end = endDateInput.value;
+
+        // இரண்டு தேதிகளும் இருந்தால் மட்டுமே Filter செய்யவும்
+        if (start && end) {
+            if (new Date(start) > new Date(end)) {
+                alert("Start Date cannot be greater than End Date");
+                return;
+            }
+            // Show loading effect on table
+            document.querySelector('#incomeTable tbody').innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
+            
+            // Redirect with query params
+            window.location.href = `?start_date=${start}&end_date=${end}`;
+        }
+    }
+
+    // --- Event Listeners ---
+    if (startDateInput && endDateInput) {
+        startDateInput.addEventListener('change', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyDateFilter, 500); // 500ms delay to prevent accidental double reload
+        });
+        endDateInput.addEventListener('change', () => {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyDateFilter, 500);
+        });
+    }
+
+    // --- Add Income Modal Focus ---
+    const addIncomeModal = document.getElementById('addIncomeModal');
+    if (addIncomeModal) {
+        addIncomeModal.addEventListener('shown.bs.modal', function () {
+            const firstInput = addIncomeModal.querySelector('input[name="description"]');
+            if (firstInput) firstInput.focus();
+        });
+    }
+});
+
+// Reset Form function
+function resetForm() {
+    const form = document.getElementById('incomeForm');
+    if(form) {
+        form.reset();
+        document.querySelector('input[name="date"]').value = "{{ today_date }}";
+    }
+}
+</script>
+{% endblock %}

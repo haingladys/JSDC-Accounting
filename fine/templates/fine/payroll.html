@@ -1,0 +1,301 @@
+{% extends 'fine/base.html' %}
+{% load static %}
+
+{% block title %}Payroll Management{% endblock %}
+
+{% block content %}
+<div id="payroll-page">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">Payroll Management</h2>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+      <!-- Period Display -->
+      <div class="dropdown period-dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                id="periodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fas fa-calendar-alt me-1"></i>
+            <span class="period-display">{{ selected_period_display }}</span>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="periodDropdown">
+            {% for option in period_options %}
+                <li>
+                    <a class="dropdown-item {% if option.selected %}active{% endif %}" 
+                      href="?period={{ option.value }}">
+                        {{ option.text }}
+                        {% if option.selected %}
+                            <i class="fas fa-check ms-2"></i>
+                        {% endif %}
+                    </a>
+                </li>
+            {% empty %}
+                <li><a class="dropdown-item disabled" href="#">No periods available</a></li>
+            {% endfor %}
+            
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item text-muted small" href="?">
+                    <i class="fas fa-undo me-2"></i>Reset to Current Month
+                </a>
+            </li>
+        </ul>
+      </div>
+      
+      <!-- Add Employee Button -->
+      <button class="btn btn-primary" id="add-employee-btn">
+        <i class="fas fa-plus me-1"></i> Add Employee
+      </button>
+    </div>
+  </div>
+  
+  <!-- Payroll Statistics -->
+  <div class="row mb-4 g-4">
+      <div class="col-6 col-md-3">
+          <div class="summary-card-v2 card-blue">
+              <div class="summary-icon-v2">
+                  <i class="fas fa-money-bill-wave"></i>
+              </div>
+              <div class="summary-details-v2">
+                  <p>Total Salary</p>
+                  <h3 id="total-salary">₹{{ total_salary|floatformat:0}}</h3>
+              </div>
+          </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+          <div class="summary-card-v2 card-purple">
+              <div class="summary-icon-v2">
+                  <i class="fas fa-piggy-bank"></i>
+              </div>
+              <div class="summary-details-v2">
+                  <p>Total Incentives</p>
+                  <h3 id="total-spr">₹{{ total_spr|floatformat:0}}</h3>
+              </div>
+          </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+          <div class="summary-card-v2 card-green">
+              <div class="summary-icon-v2">
+                  <i class="fas fa-money-bill"></i>
+              </div>
+              <div class="summary-details-v2">
+                  <p>Total Net Payable</p>
+                  <h3 id="total-net">₹{{ total_net_payable|floatformat:0 }}</h3>
+              </div>
+          </div>
+      </div>
+
+  </div>
+    
+  <!-- Employee Salaries Table -->
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th class="text-center">Worked Days</th>
+              <th class="text-end">Basic Pay(₹)</th>
+              <th class="text-end">Incentives(₹)</th>
+              <th class="text-end">Net Salary(₹)</th>
+              <th class="text-end text-nowrap">Cash (₹)</th>
+              <th class="text-end text-nowrap">Bank (₹)</th>
+              <th>Salary Date</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="employee-table-body">
+            <!-- Loading state will be shown by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div aria-hidden="true" class="modal fade" id="addEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Employee Payroll</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <form id="employeeForm" class="two-column-form">
+          <div class="row">
+            <!-- Employee Name -->
+            <div class="col-md-6 mb-3">
+              <label for="employee-name" class="form-label">Employee Name *</label>
+              <input type="text" class="form-control" id="employee-name" required>
+            </div>
+            
+            <!-- Basic Pay -->
+            <div class="col-md-6 mb-3">
+              <label for="employee-basic-salary" class="form-label">Basic Pay *</label>
+              <input type="number" class="form-control" id="employee-basic-salary" required step="0.01" min="0">
+            </div>
+            
+            <!-- Incentives Amount -->
+            <div class="col-md-6 mb-3">
+              <label for="spr-amount" class="form-label">Incentives Amount</label>
+              <input type="number" class="form-control" id="spr-amount" value="0" step="0.01" min="0">
+              <small class="text-muted">Note: Incentives are not allowed for < 28 days</small>
+            </div>
+            
+            <!-- Salary Date -->
+            <div class="col-md-6 mb-3">
+              <label for="salary-date" class="form-label">Salary Date *</label>
+              <input type="date" class="form-control" id="salary-date" required>
+            </div>
+            
+            <!-- Month and Year (hidden) -->
+            <input type="hidden" id="employee-month" value="{{ current_month }}">
+            <input type="hidden" id="employee-year" value="{{ current_year }}">
+            
+            <!-- Payment Split Section -->
+            <div class="col-12 mb-3">
+              <label class="form-label">Payment Method *</label>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <select class="form-select" id="payment-split-type" name="payment_split_type">
+                    {% for value, label in payment_split_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Split Payment Details -->
+              <div id="split-payment-details" style="display: none;">
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <label for="cash-percentage" class="form-label">Cash Percentage (%)</label>
+                    <input type="number" class="form-control" id="cash-percentage" value="100" min="0" max="100" step="0.01">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="bank-percentage" class="form-label">Bank Percentage (%)</label>
+                    <input type="number" class="form-control" id="bank-percentage" value="0" min="0" max="100" step="0.01" readonly>
+                  </div>
+                </div>
+                <div id="percentage-alert" class="alert alert-warning mt-2 py-1" style="display: none;">
+                  <small><i class="fas fa-exclamation-triangle me-1"></i> Total must be 100%</small>
+                </div>
+                
+                <!-- Amount Previews -->
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Cash Amount (₹)</label>
+                    <input type="text" class="form-control" id="cash-amount-preview" readonly>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Bank Amount (₹)</label>
+                    <input type="text" class="form-control" id="bank-amount-preview" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" id="save-employee-btn" type="button">Save Payroll</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div aria-hidden="true" class="modal fade" id="editEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Employee Payroll</h5>
+        <button aria-label="Close" class="btn-close" data-bs-dismiss="modal" type="button"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-employee-id">
+        <form id="editEmployeeForm" class="two-column-form">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="edit-employee-name" class="form-label">Employee Name *</label>
+              <input type="text" class="form-control" id="edit-employee-name" required>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="edit-employee-basic-salary" class="form-label">Basic Pay *</label>
+              <input type="number" class="form-control" id="edit-employee-basic-salary" required step="0.01" min="0">
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="edit-spr-amount" class="form-label">Incentives Amount</label>
+              <input type="number" class="form-control" id="edit-spr-amount" value="0" step="0.01" min="0">
+              <small class="text-muted">Note: Incentives are not allowed for < 28 days</small>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+              <label for="edit-salary-date" class="form-label">Salary Date *</label>
+              <input type="date" class="form-control" id="edit-salary-date" required>
+            </div>
+            
+            <!-- Payment Split Section for Edit -->
+            <div class="col-12 mb-3">
+              <label class="form-label">Payment Method *</label>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <select class="form-select" id="edit-payment-split-type" name="payment_split_type">
+                    {% for value, label in payment_split_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              
+              <!-- Split Payment Details for Edit -->
+              <div id="edit-split-payment-details" style="display: none;">
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <label for="edit-cash-percentage" class="form-label">Cash Percentage (%)</label>
+                    <input type="number" class="form-control" id="edit-cash-percentage" value="100" min="0" max="100" step="0.01">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="edit-bank-percentage" class="form-label">Bank Percentage (%)</label>
+                    <input type="number" class="form-control" id="edit-bank-percentage" value="0" min="0" max="100" step="0.01" readonly>
+                  </div>
+                </div>
+                <div id="edit-percentage-alert" class="alert alert-warning mt-2 py-1" style="display: none;">
+                  <small><i class="fas fa-exclamation-triangle me-1"></i> Total must be 100%</small>
+                </div>
+                
+                <!-- Amount Previews for Edit -->
+                <div class="row mt-3">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Cash Amount (₹)</label>
+                    <input type="text" class="form-control" id="edit-cash-amount-preview" readonly>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Bank Amount (₹)</label>
+                    <input type="text" class="form-control" id="edit-bank-amount-preview" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" id="update-employee-btn" type="button">Update Payroll</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'fine/js/payroll.js' %}"></script>
+{% endblock %}

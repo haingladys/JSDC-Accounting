@@ -1,0 +1,28 @@
+<div class="dropdown period-dropdown">
+    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+            id="periodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-calendar-alt me-1"></i>
+        <span class="period-display">{{ selected_period_display }}</span>
+    </button>
+    
+    <ul class="dropdown-menu" aria-labelledby="periodDropdown">
+        {% for option in period_options %}
+            <li>
+                <a class="dropdown-item {% if option.selected %}active{% endif %} quick-action-link" 
+                   href="?period={{ option.value }}">
+                    {{ option.text }}
+                    {% if option.selected %}
+                        <i class="fas fa-check ms-2"></i>
+                    {% endif %}
+                </a>
+            </li>
+        {% endfor %}
+        
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item text-muted small" href="?">
+                <i class="fas fa-undo me-2"></i>Reset to Current Month
+            </a>
+        </li>
+    </ul>
+</div>
