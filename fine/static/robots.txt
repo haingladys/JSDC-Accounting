@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /accounts/
+Allow: /dashboard/
+Allow: /expenses/
+Allow: /income/
+Allow: /purchases/
+Allow: /payroll/
+Allow: /attendance/
+Allow: /reports/
+Allow: /settings/
+
+# Sitemap location
+Sitemap: /sitemap.xml
+
+# Crawl delay to be respectful (optional)
+Crawl-delay: 1

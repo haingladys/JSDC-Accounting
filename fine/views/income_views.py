@@ -20,20 +20,23 @@ def income(request):
         return redirect('income')
 
     # --- Date Filter Logic Start ---
-    selected_date = request.GET.get('date')
     today = timezone.now().date()
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
     
-    if selected_date:
-        # User select seitha date-ukku filter seigirom
-        income_records = Income.objects.filter(date=selected_date).order_by('-date')
-        display_date = selected_date
+    income_records = Income.objects.all().order_by('-date')
+    display_date_info = "All Records"
+    
+    # Apply date range filter if both dates provided
+    if start_date and end_date:
+        income_records = income_records.filter(date__range=[start_date, end_date])
+        display_date_info = f"From {start_date} to {end_date}"
     else:
-        # Default-aga ella records-aiyum kaatuvom
-        income_records = Income.objects.all().order_by('-date')
-        display_date = today.isoformat()
+        start_date = ""
+        end_date = ""
     # --- Date Filter Logic End ---
 
-    # Summary Calculations (Ithu eppozhum pola irukkum)
+    # Summary Calculations
     yesterday = today - timedelta(days=1)
     start_of_week = today - timedelta(days=today.weekday())
     start_of_month = today.replace(day=1)
@@ -42,7 +45,7 @@ def income(request):
     yesterday_total = Income.objects.filter(date=yesterday).aggregate(Sum('amount'))['amount__sum'] or 0
     weekly_total = Income.objects.filter(date__gte=start_of_week).aggregate(Sum('amount'))['amount__sum'] or 0
     monthly_total = Income.objects.filter(date__gte=start_of_month).aggregate(Sum('amount'))['amount__sum'] or 0
-    total_sum = Income.objects.aggregate(Sum('amount'))['amount__sum'] or 0
+    total_sum = income_records.aggregate(Sum('amount'))['amount__sum'] or 0
 
     def get_trend(current, previous):
         if previous == 0: return 0
@@ -52,7 +55,10 @@ def income(request):
         'income_records': income_records,
         'payment_modes': [c[0] for c in Income.PAYMENT_MODE_CHOICES],
         'status_choices': [s[0] for s in Income.STATUS_CHOICES],
-        'today_date': display_date,
+        'today_date': today.isoformat(),
+        'start_date': start_date,
+        'end_date': end_date,
+        'display_date_info': display_date_info,
         'daily_total': daily_total,
         'weekly_total': weekly_total,
         'monthly_total': monthly_total,
