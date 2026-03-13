@@ -18,7 +18,6 @@ from ..models.attendance_summary import AttendanceSummary
 from ..models.attendance_summary_manager import AttendanceSummaryManager
 
 # attendance_views.py - Fix the save_attendance function with cascade soft delete awareness
-@csrf_exempt
 @require_POST
 def save_attendance(request):
     """Save attendance data via AJAX - Link to Payroll"""
@@ -153,7 +152,6 @@ def get_attendance_data(request):
         'data': data
     })
 
-@csrf_exempt
 @require_http_methods(["POST", "PUT"])
 def edit_attendance(request):
     """Edit an existing attendance record"""
@@ -376,7 +374,6 @@ def get_weekly_attendance(request):
         }
     })
 
-@csrf_exempt
 @require_POST
 def add_employee(request):
     """Add a new employee name (simple version)"""
@@ -430,7 +427,6 @@ def add_employee(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def delete_attendance(request):
     """Soft delete an attendance record"""
@@ -461,7 +457,6 @@ def delete_attendance(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def delete_employee_attendance(request):
     """Delete all attendance records for an employee"""
@@ -497,7 +492,6 @@ def delete_employee_attendance(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def restore_attendance(request):
     """Restore a soft deleted attendance record"""
@@ -537,7 +531,6 @@ def restore_attendance(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def generate_summary_for_range(request):
     """Manually generate summaries for a date range"""
@@ -781,7 +774,6 @@ def check_payroll_status(request):
         'record_state': payroll_record.record_state
     })
 
-@csrf_exempt
 @require_POST
 def restore_attendance_by_payroll(request):
     """Restore all attendance records for a payroll (when payroll is restored)"""

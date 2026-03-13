@@ -109,7 +109,6 @@ def payroll_list(request):
     
     return render(request, 'fine/payroll.html', context)
 
-@csrf_exempt
 @require_POST
 def save_payroll(request):
     """Save payroll data with payment split"""
@@ -313,7 +312,6 @@ def get_payroll_data(request):
         }
     })
 
-@csrf_exempt
 @require_POST
 def delete_payroll(request):
     """Soft delete payroll and related expenses"""
@@ -344,7 +342,6 @@ def delete_payroll(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def restore_payroll(request):
     """Restore a soft deleted payroll record"""
@@ -375,7 +372,6 @@ def restore_payroll(request):
             'message': str(e)
         }, status=400)
 
-@csrf_exempt
 @require_POST
 def recreate_expenses(request):
     """Manually recreate expenses for payroll"""

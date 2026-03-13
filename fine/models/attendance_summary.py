@@ -3,7 +3,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from .base import SoftDeleteModel
-from .payroll import Payroll
+# from .payroll import Payroll  # Removed to prevent circular import
 from django.utils import timezone
 
 class AttendanceSummary(SoftDeleteModel):
@@ -17,11 +17,9 @@ class AttendanceSummary(SoftDeleteModel):
     )
     
     payroll = models.ForeignKey(
-        Payroll,
+        'Payroll',
         on_delete=models.CASCADE,
-        related_name='attendance_summaries',
-        null=True,
-        blank=True
+        related_name='summaries'
     )
     
     employee_name = models.CharField(max_length=100)
@@ -109,6 +107,8 @@ class AttendanceSummary(SoftDeleteModel):
         payroll = None
         if payroll_id:
             try:
+                # Assuming Payroll model is imported or accessible
+                from .payroll import Payroll
                 payroll = Payroll.objects.get(id=payroll_id, record_state='active')
             except Payroll.DoesNotExist:
                 payroll = None
@@ -117,6 +117,7 @@ class AttendanceSummary(SoftDeleteModel):
         total_days = (end_date - start_date).days + 1
         
         # Get attendance records for the period
+        from ..models.attendance import Attendance
         attendance_records = Attendance.objects.filter(
             employee_name=employee_name,
             date__range=[start_date, end_date],

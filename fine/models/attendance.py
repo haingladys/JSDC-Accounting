@@ -2,10 +2,10 @@
 from django.db import models
 from decimal import Decimal
 from .base import SoftDeleteModel
-from .payroll import Payroll
-from datetime import timedelta
 from django.utils import timezone
-from .attendance_summary import AttendanceSummary
+from datetime import timedelta
+# from .payroll import Payroll  # Removed to prevent circular import
+# from .attendance_summary import AttendanceSummary  # Removed to prevent circular import
 
 class Attendance(SoftDeleteModel):
     ATTENDANCE_STATUS_CHOICES = (
@@ -16,9 +16,9 @@ class Attendance(SoftDeleteModel):
     
     # Add ForeignKey to Payroll with PROTECT on delete to prevent accidental deletion
     payroll = models.ForeignKey(
-        Payroll,
-        on_delete=models.PROTECT,  # Changed from CASCADE to PROTECT
-        related_name='attendances',
+        'Payroll',
+        on_delete=models.PROTECT,
+        related_name='attendance_records',
         null=True,
         blank=True
     )
@@ -50,18 +50,23 @@ class Attendance(SoftDeleteModel):
         return Decimal('0.0')
     
     def save(self, *args, **kwargs):
-        # Auto-populate employee_name from payroll if payroll is set
-        if self.payroll and self.payroll.employee_name:
-            self.employee_name = self.payroll.employee_name
-        
-        # Try to find payroll record if not set but employee_name is provided
-        elif self.employee_name and not self.payroll:
-            # Only look for active payroll records
+        # Ensure employee_name is properly formatted if it exists
+        if self.employee_name:
+            self.employee_name = self.employee_name.strip().title()
+
+        # If payroll is missing, try to find it using employee_name
+        if not self.payroll and self.employee_name:
+            from .payroll import Payroll
             payroll_record = Payroll.objects.filter(
-                employee_name=self.employee_name.strip().title()
+                employee_name=self.employee_name,
+                record_state='active'
             ).first()
             if payroll_record:
                 self.payroll = payroll_record
+        
+        # If payroll is set, sync the employee_name for consistency (optional but helpful for some views)
+        if self.payroll and not self.employee_name:
+            self.employee_name = self.payroll.employee_name
         
         # Ensure employee_name is properly formatted
         if self.employee_name:

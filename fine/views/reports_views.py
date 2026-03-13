@@ -258,52 +258,52 @@ def get_payroll_report(start_date, end_date):
 
 
 def get_attendance_report(start_date, end_date):
-    """Generate attendance report data"""
-    summaries = AttendanceSummary.objects.filter(
-        start_date__gte=start_date,
-        end_date__lte=end_date,
-        record_state='active',
-        period_type='daily'
+    """Generate attendance report data with optimized single-query aggregation"""
+    # Get all active employees from payroll to ensure everyone is included
+    employees = list(Payroll.objects.filter(
+        record_state='active'
+    ).values_list('employee_name', flat=True).distinct())
+
+    # Fetch aggregated attendance data in a single query
+    attendance_stats = Attendance.objects.filter(
+        date__range=[start_date, end_date],
+        record_state='active'
+    ).values('employee_name').annotate(
+        p_count=Count('id', filter=Q(status='present')),
+        h_count=Count('id', filter=Q(status='half_day')),
+        a_count=Count('id', filter=Q(status='absent')),
     )
 
-    if not summaries.exists():
-        summaries_data = []
-        employees = Payroll.objects.filter(
-            record_state='active'
-        ).values_list('employee_name', flat=True).distinct()
-
-        for employee in employees:
-            summary, _ = AttendanceSummary.generate_summary_for_period(
-                employee_name=employee,
-                period_type='custom',
-                start_date=start_date,
-                end_date=end_date
-            )
-            summaries_data.append(summary)
-    else:
-        summaries_data = list(summaries)
-
-    total_employees = len(summaries_data)
-    total_present = sum(s.present_days for s in summaries_data)
-    total_half = sum(s.half_days for s in summaries_data)
-    total_absent = sum(s.absent_days for s in summaries_data)
-    total_full_days = sum(float(s.full_days) for s in summaries_data)
+    # Convert to dictionary for easy lookup
+    stats_map = {s['employee_name']: s for s in attendance_stats}
     total_days_in_period = (end_date - start_date).days + 1
+    
+    records = []
+    for emp_name in employees:
+        s = stats_map.get(emp_name, {'p_count': 0, 'h_count': 0, 'a_count': 0})
+        full_days = Decimal(s['p_count']) + (Decimal(s['h_count']) * Decimal('0.5'))
+        
+        records.append({
+            'employee_name': emp_name,
+            'present_days': s['p_count'],
+            'half_days': s['h_count'],
+            'absent_days': s['a_count'],
+            'full_days': float(full_days),
+            'total_days': total_days_in_period,
+            'attendance_percentage': (float(full_days) / total_days_in_period * 100) if total_days_in_period > 0 else 0
+        })
+
+    total_employees = len(records)
+    total_present = sum(r['present_days'] for r in records)
+    total_half = sum(r['half_days'] for r in records)
+    total_absent = sum(r['absent_days'] for r in records)
+    total_full_days = sum(r['full_days'] for r in records)
 
     avg_attendance = (total_full_days / (
         total_employees * total_days_in_period)) * 100 if total_employees > 0 and total_days_in_period > 0 else 0
 
     return {
-        'records': [{
-            'employee_name': s.employee_name,
-            'present_days': s.present_days,
-            'half_days': s.half_days,
-            'absent_days': s.absent_days,
-            'full_days': float(s.full_days),
-            'total_days': s.total_days_in_period,
-            'attendance_percentage': (
-                float(s.full_days) / s.total_days_in_period * 100) if s.total_days_in_period > 0 else 0
-        } for s in summaries_data],
+        'records': records,
         'summary': {
             'total_employees': total_employees,
             'total_present': total_present,

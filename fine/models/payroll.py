@@ -79,50 +79,26 @@ class Payroll(SoftDeleteModel):
         return f"{self.employee_name} - {self.month}/{self.year} - ₹{self.net_salary}"
 
     def calculate_worked_days(self):
-        """Calculate worked days from attendance records"""
+        """
+        Calculate total worked days based on linked attendance records.
+        """
         try:
-            # Try to import Attendance model
-            from .attendance import Attendance
+            # Use the related_name from the Attendance model's ForeignKey
+            attendance_records = self.attendance_records.filter(record_state='active')
             
-            # Check if Attendance model exists and has required fields
-            print(f"Calculating worked days for {self.employee_name}, month: {self.month}, year: {self.year}")
-            
-            # Get all active attendance records for this employee in the selected month/year
-            attendance_records = Attendance.objects.filter(
-                employee_name=self.employee_name,
-                month=self.month,
-                year=self.year,
-                record_state='active'
-            )
-            
-            print(f"Found {attendance_records.count()} attendance records")
-            
-            # Different ways to count worked days based on your Attendance model structure:
-            
-            # Option 1: If you have a 'date' field in Attendance model
-            # worked_days = attendance_records.values('date').distinct().count()
-            
-            # Option 2: If you have 'present_days' or similar field
-            # total_days = attendance_records.aggregate(total=Sum('present_days'))['total'] or 0
-            
-            # Option 3: Simple count of records (assuming 1 record = 1 day)
-            worked_days = attendance_records.count()
-            
-            # Debug output
+            total_worked = Decimal('0.0')
             for record in attendance_records:
-                print(f"  Attendance record: {record.employee_name} - {record.month}/{record.year}")
+                if record.status == 'present':
+                    total_worked += Decimal('1.0')
+                elif record.status == 'half_day':
+                    total_worked += Decimal('0.5')
+                    
+            print(f"Calculated worked days for {self.employee_name}: {total_worked}")
+            return total_worked
             
-            print(f"Calculated worked days: {worked_days}")
-            return Decimal(str(worked_days))
-            
-        except ImportError as e:
-            print(f"Attendance model not found: {e}")
-            return Decimal('0')
         except Exception as e:
             print(f"Error calculating worked days: {e}")
-            import traceback
-            print(traceback.format_exc())
-            return Decimal('0')
+            return Decimal('0.0')
 
     def calculate_salary(self):
         """Calculate net salary and payment splits"""

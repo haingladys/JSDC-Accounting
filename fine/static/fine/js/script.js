@@ -3513,11 +3513,8 @@ class LoginManager {
         const saved = localStorage.getItem('filedgeUsers');
         if (saved) return JSON.parse(saved);
         
-        // Default users
-        return [
-            { id: 1, username: 'admin', password: 'admin123', role: 'admin', email: 'admin@filedge.com' },
-            { id: 2, username: 'user', password: 'user123', role: 'user', email: 'user@filedge.com' }
-        ];
+        // No default users - should be managed via registration/backend
+        return [];
     }
 
     saveUsers() {
@@ -3848,6 +3845,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loginManager.currentUser) {
         window.jsdcApp = new JSDCApplication();
         
+        // Setup CSRF for all AJAX requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+
         // Render users list if admin
         if (loginManager.isAdmin()) {
             renderUsersList();

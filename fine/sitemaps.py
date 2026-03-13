@@ -29,15 +29,14 @@ class ExpenseSitemap(Sitemap):
     """
     Sitemap for Expense model instances.
     """
-    changefreq = "weekly"
-    priority = 0.6
+    changefreq = "monthly"
+    priority = 0.5
 
     def items(self):
-        from .models import Expense
-        return Expense.objects.all()
+        return ['attendance', 'payroll', 'expense_list', 'income_list', 'purchase_list']
 
-    def location(self, obj):
-        return reverse('expenses')
+    def location(self, item):
+        return reverse(item)
 
     def lastmod(self, obj):
         return obj.date if hasattr(obj, 'date') else None
@@ -83,7 +82,7 @@ class PayrollSitemap(Sitemap):
     """
     Sitemap for Payroll model instances.
     """
-    changefreq = "two weeks"
+    changefreq = "monthly"
     priority = 0.7
 
     def items(self):

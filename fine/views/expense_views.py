@@ -137,7 +137,6 @@ def delete_expense(request, pk):
     return redirect('expenses')
 
 
-@csrf_exempt
 @require_POST
 def restore_expense(request):
     """Restore a soft deleted expense record."""
